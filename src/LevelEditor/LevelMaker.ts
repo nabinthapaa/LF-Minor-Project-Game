@@ -48,6 +48,7 @@ export class LevelMaker {
   }
 
   drawGrid() {
+    leCtx.strokeStyle = "red";
     leCtx.beginPath();
     for (let i = 0; i < canvasLevelEditor.width; i += TILE_WIDTH) {
       leCtx.moveTo(i, 0);

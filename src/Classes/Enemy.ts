@@ -3,6 +3,7 @@ import { AttackVariant } from "../enums/Attack";
 import { CharacterVariant } from "../enums/Character";
 import { TVelocity } from "../types/Character";
 import { Dimension, Position, SolidObject } from "../types/Position";
+import { isCollisionBetween } from "../utils/Collision";
 import { Character } from "./Character";
 import { Player } from "./Player";
 import { SpriteRender } from "./SpriteRenderer";
@@ -55,6 +56,7 @@ export class Enemy extends Character {
   }
 
   public move(): void {
+    if (!this.isAlive()) return;
     if (this.currentMoveDistance >= this.maxMoveDistance) {
       this.velocity.x = -this.velocity.x;
       this.currentMoveDistance = 0;
@@ -64,13 +66,17 @@ export class Enemy extends Character {
     this.currentMoveDistance += Math.abs(this.velocity.x);
   }
 
+  get asSolidObject(): SolidObject {
+    return {
+      x: this.position.x,
+      y: this.position.y,
+      width: this.dimension.width,
+      height: this.dimension.height,
+    };
+  }
+
   public isColliding(object: SolidObject): boolean {
-    return (
-      this.position.x < object.x + object.width &&
-      this.position.x + this.dimension.width > object.x &&
-      this.position.y < object.y + object.height &&
-      this.position.y + this.dimension.height > object.y
-    );
+    return isCollisionBetween(object, this.asSolidObject);
   }
 
   public takeDamage(damage: number): number {
@@ -79,7 +85,7 @@ export class Enemy extends Character {
   }
 
   public attackCharacter(player: Player): number {
-    if (this.isColliding(player.getSolidVersionofPlayer())) {
+    if (this.isColliding(player.asSolidObject)) {
     }
     return 0;
   }
