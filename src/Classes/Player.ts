@@ -5,13 +5,12 @@ import {
   PLAYER_X_SPEED,
   PLAYER_Y_SPEED,
 } from "../constants/Character";
-import { TILE_WIDTH } from "../constants/Sprite";
+import { TILE_HEIGHT } from "../constants/Sprite";
 import { PlayerSpriteDimensions } from "../constants/SpriteDimensions";
 import { AttackVariant } from "../enums/Attack";
 import { CharacterVariant } from "../enums/Character";
 import { TVelocity } from "../types/Character";
 import { Dimension, Position, SolidObject } from "../types/Position";
-import { Collision } from "../utils/Collision";
 import { Character } from "./Character";
 import Platform from "./Platform";
 import { SpriteRender } from "./SpriteRenderer";
@@ -24,12 +23,15 @@ export class Player extends Character {
   dimension: Dimension;
   velocity: TVelocity;
   sprite = "shine";
-  isSpirteReset = false;
   currentSpiriteState = "shine";
+
+  isSpirteReset = false;
   isGrounded = false;
   importantAnimationPlaying = false;
   isAttacking = false;
-  facingDirection = "right";
+  isJumpAttacking = false;
+  shouldFlip = false;
+
   health = 400;
   hitbox = {
     x: this.position.x,
@@ -53,7 +55,7 @@ export class Player extends Character {
     this.velocity = { x: PLAYER_X_SPEED, y: PLAYER_Y_SPEED };
   }
 
-  private init() {
+  public init() {
     this.render = new SpriteRender(PlayerSpriteDimensions[this.sprite]);
     this.position = {
       x: 0,
@@ -63,28 +65,10 @@ export class Player extends Character {
     this.cameraPosition_.y = 0;
   }
 
-  public updatePlayer(ctx: CanvasRenderingContext2D) {
-    this.isGrounded = false;
-    this.updateNearbyAvailalePlatforms();
-    this.updateHitBox();
+  public updatePlayer() {
     this.checkCanvasHorizontalEdgeCollision();
-    this.checkHorizontalPlatformCollision();
     this.applyGravity();
     this.updateHitBox();
-    this.checkVerticalPlatformCollision();
-    this.drawPlayer(ctx);
-  }
-
-  // TODO: Remove this function
-  drawplayerboundry(ctx: CanvasRenderingContext2D) {
-    console.log("Player Positions", { x: this.position.x, y: this.position.y });
-    ctx.strokeStyle = "red";
-    ctx.strokeRect(
-      this.position.x + this.cameraPosition_.x,
-      this.position.y,
-      36,
-      32
-    );
   }
 
   /**
@@ -94,23 +78,33 @@ export class Player extends Character {
    */
   public drawPlayer(ctx: CanvasRenderingContext2D) {
     this.render.animateSprite(this);
-    if (this.facingDirection === "right") {
-      this.render.drawFrame(
-        ctx,
-        this.position,
-        this.dimension,
-        false,
-        this.cameraPosition_
-      );
-    } else {
-      this.render.drawFrame(
-        ctx,
-        this.position,
-        this.dimension,
-        true,
-        this.cameraPosition_
-      );
-    }
+    this.render.drawFrame(
+      ctx,
+      this.position,
+      this.dimension,
+      this.shouldFlip,
+      this.cameraPosition_
+    );
+  }
+
+  /**
+   * Reset the player sprite to idle sprite if
+   * the player is not moving or attacking and is on the ground
+   * @returns {void}
+   */
+  public resetSprite(): void {
+    if (
+      !this.isGrounded ||
+      this.importantAnimationPlaying ||
+      this.isSpirteReset
+    )
+      return;
+    this.sprite = "shine";
+    this.switchSprite();
+    this.isSpirteReset = true;
+    this.currentSpiriteState = this.sprite;
+    this.isAttacking = false;
+    this.isJumpAttacking = false;
   }
 
   /**
@@ -121,13 +115,14 @@ export class Player extends Character {
   public moveLeft(): void {
     this.velocity.x = -PLAYER_X_SPEED;
     this.position.x += this.velocity.x;
+    this.shouldFlip = true;
     if (!this.isGrounded) return;
     this.sprite = "walk";
-    this.facingDirection = "left";
     if (this.currentSpiriteState !== this.sprite) {
       this.switchSprite();
       this.currentSpiriteState = this.sprite;
     }
+    this.isGrounded = false;
   }
 
   /**
@@ -138,28 +133,14 @@ export class Player extends Character {
   public moveRight(): void {
     this.velocity.x = PLAYER_X_SPEED;
     this.position.x += this.velocity.x;
+    this.shouldFlip = false;
     if (!this.isGrounded) return;
-    this.facingDirection = "right";
     this.sprite = "walk";
     if (this.currentSpiriteState !== this.sprite) {
       this.switchSprite();
       this.currentSpiriteState = this.sprite;
     }
-  }
-
-  /**
-   * Reset the player sprite to idle sprite if
-   * the player is not moving or attacking and is on the ground
-   * @returns {void}
-   */
-  public resetSprite(): void {
-    if (!this.isGrounded || this.importantAnimationPlaying) return;
-    this.sprite = "shine";
-    if (!this.isSpirteReset) {
-      this.switchSprite();
-      this.isSpirteReset = true;
-      this.currentSpiriteState = this.sprite;
-    }
+    this.isGrounded = false;
   }
 
   /**
@@ -168,16 +149,15 @@ export class Player extends Character {
    * @returns {void}
    */
   public jump(): void {
-    if (this.isGrounded) {
-      this.velocity.y = JUMP_FORCE;
-      this.position.y += this.velocity.y;
-      this.sprite = "jump";
-      if (this.currentSpiriteState !== this.sprite) {
-        this.switchSprite();
-        this.currentSpiriteState = this.sprite;
-      }
-      this.isGrounded = false;
+    if (!this.isGrounded) return;
+    this.velocity.y = JUMP_FORCE;
+    this.position.y += this.velocity.y;
+    this.sprite = "jump";
+    if (this.currentSpiriteState !== this.sprite) {
+      this.switchSprite();
+      this.currentSpiriteState = this.sprite;
     }
+    this.isGrounded = false;
   }
 
   /**
@@ -186,26 +166,43 @@ export class Player extends Character {
    * @returns {void}
    */
   public jumpAttack(): void {
-    if (!this.isGrounded) {
-      this.sprite = "jumpAttack";
-      if (this.currentSpiriteState !== this.sprite) {
-        this.switchSprite();
-        this.currentSpiriteState = this.sprite;
-      }
+    if (this.isGrounded || this.isAttacking) return;
+    this.isJumpAttacking = true;
+    this.sprite = "jumpAttack";
+    if (this.currentSpiriteState !== this.sprite) {
+      this.switchSprite();
+      this.currentSpiriteState = this.sprite;
     }
   }
 
   /**
-   * Normal attack action only when the player is on ground
+   * Sends player back to jump attack state after colliding with
+   * enemy or obstacle during a jump attack
+   * @returns {void}
+   */
+  public rebound(): void {
+    this.isGrounded = false;
+    this.isJumpAttacking = true;
+    this.velocity.y = JUMP_FORCE;
+    this.position.y += this.velocity.y;
+    this.sprite = "jumpAttack";
+    if (this.currentSpiriteState !== this.sprite) {
+      this.switchSprite();
+      this.currentSpiriteState = this.sprite;
+    }
+  }
+
+  /**
+   * Normal attack action only when the player is on ground or air
    * @returns {void}
    */
   public attackNormal(): void {
-    if (!this.isGrounded || this.isAttacking) return;
+    if (this.isAttacking || this.isJumpAttacking) return;
     this.sprite = "dig";
     this.isAttacking = true;
     setTimeout(() => {
       this.isAttacking = false;
-    }, 1000);
+    }, 50);
     this.importantAnimationPlaying = true;
     if (this.currentSpiriteState !== this.sprite) {
       this.switchSprite();
@@ -235,23 +232,13 @@ export class Player extends Character {
    * collision detection
    * @returns SolidObject
    */
-  public getSolidVersionofPlayer(): SolidObject {
+  get asSolidObject(): SolidObject {
     return {
       x: this.position.x,
       y: this.position.y,
       width: this.dimension.width,
       height: this.dimension.height,
     };
-  }
-
-  /**
-   * Updates the nearby platforms that the player can collide with
-   * @returns {void}
-   */
-  private updateNearbyAvailalePlatforms(): void {
-    this.nearbyPlatforms = this.platforms.filter((platform) =>
-      Collision(this.getSolidVersionofPlayer(), platform)
-    );
   }
 
   /**
@@ -286,60 +273,8 @@ export class Player extends Character {
     if (this.isGrounded) return;
     this.velocity.y += GRAVITY;
     this.position.y += this.velocity.y;
-    if (this.position.y >= Canvas.CANVAS_HEIGHT - this.dimension.height) {
+    if (this.position.y >= Canvas.COLS * TILE_HEIGHT - this.dimension.height) {
       this.init();
-    }
-  }
-
-  /**
-   * Checks for vertical collision with the platform while jumping and falling
-   * if player is falling and collides with the platform, the player is grounded
-   * if player is jumping and collides with the platform, the player bounces back
-   * the ground
-   * @returns {void}
-   */
-  private checkVerticalPlatformCollision(): void {
-    for (let platform of this.nearbyPlatforms) {
-      if (Collision(this.getSolidVersionofPlayer(), platform)) {
-        if (this.velocity.y >= 0) {
-          this.position.y = platform.y - this.dimension.height;
-          this.velocity.y = 0;
-          this.isGrounded = true;
-        }
-        if (this.velocity.y < 0) {
-          this.position.y = platform.y + platform.height;
-          this.velocity.y = 0;
-        }
-      }
-    }
-  }
-
-  /**
-   * Checks for horizontal collision with the platform while moving left and right
-   * only if the platform is a wall, the player is stopped from moving
-   * @returns {void}
-   */
-  private checkHorizontalPlatformCollision(): void {
-    for (let platform of this.nearbyPlatforms) {
-      if (Collision(this.getSolidVersionofPlayer(), platform)) {
-        if (platform.isWall) {
-          if (
-            this.position.x + this.dimension.width > platform.x &&
-            this.position.x + this.dimension.width < platform.x + platform.width
-          ) {
-            this.position.x = platform.x - this.dimension.width;
-            this.velocity.x = 0;
-            continue;
-          } else if (
-            this.position.x > platform.x &&
-            this.position.x < platform.x + platform.width
-          ) {
-            this.position.x = platform.x + platform.width;
-            this.velocity.x = 0;
-            continue;
-          }
-        }
-      }
     }
   }
 

@@ -22,3 +22,10 @@ export const gameSprite:{[key:string]: HTMLImageElement} = {
   map : getImage("/map.png"),
   extended : getImage("/extended_background.png"),
 }
+
+export const obstacleSpriteImage:{[key:string]: HTMLImageElement} = {
+  bigBlock: getImage("/dirtBlockBig.png"),
+  smallBlock: getImage("/dirtBlockSmall.png"),
+  bigBlockBroken: getImage("/dirtBlockBigExplode.png"),
+  smallBlockBroken: getImage("/dirtBlockSmallExplode.png"),
+}
