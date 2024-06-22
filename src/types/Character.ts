@@ -12,8 +12,8 @@ export type TVelocity = {
 
 export type TSprite = {
   image: HTMLImageElement;
-  width: number;
-  height: number;
+  frameWidth: number;
+  frameHeight: number;
   frameCount: number;
 };
 

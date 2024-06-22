@@ -1,53 +1,56 @@
-import { Canvas } from "../constants/Canvas";
 import { TSprite } from "../types/Character";
-import { Position } from "../types/Position";
+import { Dimension, Position } from "../types/Position";
 import { Player } from "./Player";
 
 export class SpriteRender {
+  Image: HTMLImageElement;
+  frameWidth: number;
+  frameHeight: number;
+  frameCount: number;
+
   private frameX = 0;
   private frameY = 0;
   private elapsedFrame = 0;
   iscompleted = false;
-  constructor(
-    public Image: HTMLImageElement,
-    public frameWidth: number,
-    public frameHeight: number,
-    public frameCount: number
-  ) {}
 
-  private drawFramePrivate(ctx: CanvasRenderingContext2D, position: Position) {
+  constructor(sprite: TSprite) {
+    this.Image = sprite.image;
+    this.frameWidth = sprite.frameWidth;
+    this.frameHeight = sprite.frameHeight;
+    this.frameCount = sprite.frameCount;
+  }
+
+  public drawFrame(
+    ctx: CanvasRenderingContext2D,
+    position: Position,
+    dimension: Dimension,
+    reverse: boolean = false,
+    cameraPosition: Position
+  ) {
+    ctx.save();
+    if (reverse) {
+      ctx.translate(position.x + dimension.width, position.y);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(
       this.Image,
       this.frameX * this.frameWidth,
       this.frameY * this.frameHeight,
       this.frameWidth,
       this.frameHeight,
-      position.x,
-      position.y,
-      this.frameWidth * Canvas.SCALE,
-      this.frameHeight * Canvas.SCALE
+      reverse ? 0 - cameraPosition.x : position.x + cameraPosition.x,
+      reverse ? 0 - cameraPosition.y : position.y + cameraPosition.y,
+      this.frameWidth,
+      this.frameHeight
     );
-  }
-
-  public drawFrame(
-    ctx: CanvasRenderingContext2D,
-    position: Position,
-    reverse: boolean = false
-  ) {
-    if (reverse) {
-      ctx.save();
-      this.drawFramePrivate(ctx, position);
-      ctx.restore();
-    } else {
-      this.drawFramePrivate(ctx, position);
-    }
+    if (reverse) ctx.restore();
   }
 
   switchSprite(image: TSprite) {
     this.frameX = 0;
     this.frameY = 0;
-    this.frameHeight = image.height;
-    this.frameWidth = image.width;
+    this.frameHeight = image.frameHeight;
+    this.frameWidth = image.frameWidth;
     this.Image = image.image;
     this.frameCount = image.frameCount;
     this.elapsedFrame = 0;

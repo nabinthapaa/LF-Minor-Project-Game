@@ -33,7 +33,7 @@ export class Character implements ICharacter {
     console.log(damage);
     throw new Error("Method not implemented.");
   }
-  isDead?(): boolean {
+  isAlive?(): boolean {
     throw new Error("Method not implemented.");
   }
 }

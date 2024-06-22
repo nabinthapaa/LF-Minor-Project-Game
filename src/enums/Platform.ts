@@ -1,0 +1,6 @@
+export enum EPlatform {
+  COLLIDABLE,
+  CLIMBABLE,
+  PASSTHROUGH,
+  INNERTILE,
+}

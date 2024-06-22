@@ -8,5 +8,3 @@ export function Collision(Object1: SolidObject, Object2: SolidObject) {
     Object1.y + Object1.height > Object2.y
   );
 }
-
-

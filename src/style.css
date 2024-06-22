@@ -4,7 +4,29 @@
   box-sizing: border-box;
 }
 
+body{
+  height: 100svh;
+  background: #000;
+  position: relative;
+}
+
 #canvas {
   background: rgba(0, 0, 0, 0.5);
   display: block;
+}
+
+.container {
+  --move-left: 0px;
+  width: fit-content;
+  height: fit-content;
+  background-image: url("/background.jfif");
+  background-position: bottom 0px left var(--move-left);
+  background-repeat: repeat-x;
+  overflow: hidden;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  transition: background-position 0.5s;
 }

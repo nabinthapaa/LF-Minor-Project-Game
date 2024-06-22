@@ -1,5 +1,4 @@
 export const Canvas = {
-  CANVAS_HEIGHT: window.innerHeight || 600,
-  CANVAS_WIDTH: window.innerWidth || 800,
-  SCALE: 2.5,
+  CANVAS_HEIGHT: 25 * 16,
+  CANVAS_WIDTH: 92 * 16,
 };

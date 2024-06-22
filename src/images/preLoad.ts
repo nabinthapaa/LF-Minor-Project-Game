@@ -1,29 +1,24 @@
 import { getImage } from "../utils/getAssest";
 
-const dig = getImage("/dig.png");
-const walk = getImage("/walk.png");
-const shine = getImage("/shine.png");
-const jump = getImage("/jump.png");
-const jumpAttack = getImage("/jumpAttack.png");
-const jumpNormal = getImage("/jump2.png");
-const victory = getImage("/victory.png");
-
-const background = getImage("/background.jfif");
-const map = getImage("/map.png");
-
 export const tileset = getImage('/plainsOfPassage.png')
 
 export const playerSpriteImage:{[key:string]: HTMLImageElement} = {
-  dig,
-  walk,
-  shine,
-  jump,
-  jumpAttack,
-  jumpNormal,
-  victory,
+  dig: getImage("/dig.png"),
+  walk: getImage("/walk.png"),
+  shine: getImage("/shine.png"),
+  jump : getImage("/jump.png"),
+  jumpAttack : getImage("/jumpAttack.png"),
+  jumpNormal : getImage("/jump2.png"),
+  victory : getImage("/victory.png"),
 };
 
+export const beetoSpriteImage:{[key:string]: HTMLImageElement} = {
+  walk: getImage("/beetoWalk.png"),
+  die: getImage("/beetoFlip.png"),
+}
+
 export const gameSprite:{[key:string]: HTMLImageElement} = {
-  background,
-  map
+  background : getImage("/background.jfif"),
+  map : getImage("/map.png"),
+  extended : getImage("/extended_background.png"),
 }
