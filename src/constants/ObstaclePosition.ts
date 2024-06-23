@@ -20,6 +20,6 @@ export const bigDirtBlockPostion: Position[] = [
   { x: 114, y: 252 },
   { x: 114, y: 284 },
   { x: 66, y: 316 },
-  {x: 708, y: 317},
-  {x: 1030, y: 173}
+  { x: 708, y: 317 },
+  { x: 1030, y: 173 },
 ];

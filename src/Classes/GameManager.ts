@@ -9,10 +9,10 @@ import {
   resolveHorizontalCollision,
   resolveVerticalCollision,
 } from "../utils/Collision";
-import { Enemy } from "./Enemy";
 import { Obstacle } from "./Obstacle";
 import Platform from "./Platform";
 import { Player } from "./Player";
+import { Enemy } from "./enemies/Enemy";
 
 interface GameManagerConstructor {
   platforms: Platform[];
@@ -57,6 +57,8 @@ export default class GameManager {
     // Draw Phase
     this.enemies.forEach((enemy) => {
       enemy.move();
+    });
+    this.enemies.forEach((enemy) => {
       enemy.renderEnemy(ctx);
     });
     this.player.drawPlayer(ctx);
@@ -92,18 +94,27 @@ export default class GameManager {
       obstacle.draw(ctx, this.cameraPosition);
     });
   }
+
   public checkObstacleCollisions(): void {
-    this.obstacles?.forEach((obstacle) => {
+    this.obstacles?.forEach((obstacle, index) => {
       if (obstacle.isColliding(this.player.asSolidObject)) {
         if (!this.player.isAttacking && !this.player.isJumpAttacking) {
           resolveCollisionBetween(this.player, obstacle.asSolidObject);
-        } else if (this.player.isJumpAttacking) {
+        } else if (
+          this.player.isJumpAttacking &&
+          obstacle.isColliding(this.player.damageBox)
+        ) {
           obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
-          this.player.rebound();
+          resolveVerticalCollision(this.player, obstacle.asSolidObject);
           obstacle.dimension.height = 0;
           obstacle.dimension.width = 0;
           obstacle.position = { x: 0, y: 0 };
-        } else {
+          this.player.rebound();
+          this.obstacles?.slice(index, 1);
+        } else if (
+          this.player.isAttacking &&
+          obstacle.isColliding(this.player.damageBox)
+        ) {
           obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
           obstacle.dimension.height = 0;
           obstacle.dimension.width = 0;
@@ -115,9 +126,23 @@ export default class GameManager {
 
   public checkPlayerEnemyCollision(): void {
     this.enemies.forEach((enemy) => {
-      if (enemy.isColliding(this.player.asSolidObject)) {
-        if (this.player.isAttacking) {
-          enemy.takeDamage(1);
+      if (enemy.isColliding(this.player.hitbox)) {
+        if (
+          this.player.isAttacking &&
+          isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+        ) {
+          enemy.takeDamage(50);
+          enemy.shouldDamage = false;
+        } else if (
+          this.player.isJumpAttacking &&
+          isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+        ) {
+          enemy.takeDamage(100);
+          enemy.shouldDamage = false
+          this.player.rebound();
+        } else if (enemy.isColliding(this.player.asSolidObject)) {
+          this.player.takeDamage(10);
+          this.player.shouldDamage = false;
         }
       }
     });
@@ -149,7 +174,7 @@ export default class GameManager {
           if (this.keySet.has("ArrowUp")) {
             this.player.position.y -= 1;
           } else if (this.keySet.has("ArrowDown")) {
-            this.player.position.y += 1;
+            if (!this.player.isGrounded) this.player.position.y += 1;
           }
         } else if (platform.type === EPlatform.LETHAL) {
           console.log("Lethal Platform Collision");
