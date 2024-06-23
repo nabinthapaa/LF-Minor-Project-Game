@@ -29,3 +29,14 @@ export const obstacleSpriteImage: { [key: string]: HTMLImageElement } = {
   bigBlockBroken: getImage("/dirtBlockBigExplode.png"),
   smallBlockBroken: getImage("/dirtBlockSmallExplode.png"),
 };
+
+export const BigDragonSpriteImage: { [key: string]: HTMLImageElement } = {
+  sleep: getImage("/bigDragonSleep.png"),
+  moveFront: getImage("/bigDragonMoveFront.png"),
+  moveBack: getImage("/bigDragonMoveBack.png"),
+  attack: getImage("/bigDragonAttack.png"),
+};
+
+export const bubbleSpriteImage: { [key: string]: HTMLImageElement } = {
+  bubble: getImage("/bubbles.png"),
+};

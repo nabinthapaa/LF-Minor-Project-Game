@@ -12,6 +12,8 @@ import {
 import { Obstacle } from "./Obstacle";
 import Platform from "./Platform";
 import { Player } from "./Player";
+import { Beeto } from "./enemies/Beeto";
+import BigDragon from "./enemies/BigDragon";
 import { Enemy } from "./enemies/Enemy";
 
 interface GameManagerConstructor {
@@ -31,13 +33,16 @@ export default class GameManager {
   nearbyPlatforms: Platform[] = [];
   keySet = new Set<string>();
 
-  constructor({
-    platforms,
-    player,
-    enemies,
-    cameraPositionWorld,
-    obstacles,
-  }: GameManagerConstructor) {
+  constructor(
+    {
+      platforms,
+      player,
+      enemies,
+      cameraPositionWorld,
+      obstacles,
+    }: GameManagerConstructor,
+    public ctx: CanvasRenderingContext2D
+  ) {
     this.platforms = platforms;
     this.player = player;
     this.enemies = enemies;
@@ -56,10 +61,10 @@ export default class GameManager {
     this.checkPlayerEnemyCollision();
     // Draw Phase
     this.enemies.forEach((enemy) => {
-      enemy.move();
+      if (enemy instanceof Beeto) enemy.move();
     });
     this.enemies.forEach((enemy) => {
-      enemy.renderEnemy(ctx);
+      enemy.renderEnemy(this.player, ctx);
     });
     this.player.drawPlayer(ctx);
     this.drawObstacles(ctx);
@@ -124,26 +129,24 @@ export default class GameManager {
     });
   }
 
+  private getNearbyEnemies = (): Enemy[] => {
+    return this.enemies.filter((enemy) => {
+      return (
+        Math.abs(enemy.position.x - this.player.position.x) < 500 ||
+        Math.abs(enemy.position.y - this.player.position.y) < 200
+      );
+    });
+  };
+
   public checkPlayerEnemyCollision(): void {
-    this.enemies.forEach((enemy) => {
-      if (enemy.isColliding(this.player.hitbox)) {
-        if (
-          this.player.isAttacking &&
-          isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
-        ) {
-          enemy.takeDamage(50);
-          enemy.shouldDamage = false;
-        } else if (
-          this.player.isJumpAttacking &&
-          isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
-        ) {
-          enemy.takeDamage(100);
-          enemy.shouldDamage = false
-          this.player.rebound();
-        } else if (enemy.isColliding(this.player.asSolidObject)) {
-          this.player.takeDamage(10);
-          this.player.shouldDamage = false;
-        }
+    this.getNearbyEnemies().forEach((enemy) => {
+      if (enemy.isColliding(this.player.hitbox) && enemy instanceof Beeto) {
+        this.handleBeetoAttack(enemy);
+      } else if (
+        Math.abs(enemy.position.x - this.player.position.x) < 500 &&
+        enemy instanceof BigDragon
+      ) {
+        this.handleBigDragonAttack(enemy);
       }
     });
   }
@@ -203,9 +206,47 @@ export default class GameManager {
     }
   }
 
-  public checkPlayerAttack(): void {}
-  public checkPlayerDamage(): void {}
+  private handleBeetoAttack(enemy: Beeto): void {
+    if (
+      this.player.isAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(50);
+      enemy.shouldDamage = false;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(100);
+      enemy.shouldDamage = false;
+      this.player.rebound();
+    } else if (enemy.isColliding(this.player.asSolidObject)) {
+      this.player.takeDamage(10);
+      this.player.shouldDamage = false;
+    }
+  }
 
-  public checkEnemyAttack(): void {}
-  public checkEnemyDamage(): void {}
+  private handleBigDragonAttack(enemy: BigDragon): void {
+    if (
+      this.player.isAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.hitbox)
+    ) {
+      enemy.takeDamage(50);
+      enemy.shouldDamage = false;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.hitbox)
+    ) {
+      enemy.takeDamage(100);
+      this.player.rebound();
+      enemy.shouldDamage = false;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.noHitbox)
+    ) {
+      this.player.rebound();
+    } else {
+      enemy.attackPlayer();
+    }
+  }
 }

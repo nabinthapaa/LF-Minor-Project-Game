@@ -36,37 +36,9 @@ export class Enemy extends Character {
     this.health = 100;
   }
 
-  public renderEnemy(ctx: CanvasRenderingContext2D): void {
-    if (!this.isAlive()) {
-      this.dimension = {
-        width: 0,
-        height: 0,
-      };
-      this.position = {
-        x: 0,
-        y: 0,
-      };
-    }
-    this.render.animateSprite();
-    this.render.drawFrame(
-      ctx,
-      this.position,
-      this.dimension,
-      this.shouldFlip,
-      this.cameraPosition
-    );
-  }
+  public renderEnemy(_: Player, __: CanvasRenderingContext2D): void {}
 
-  public move(): void {
-    if (!this.isAlive()) return;
-    if (this.currentMoveDistance >= this.maxMoveDistance) {
-      this.velocity.x = -this.velocity.x;
-      this.currentMoveDistance = 0;
-      this.shouldFlip = !this.shouldFlip;
-    }
-    this.position.x += this.velocity.x;
-    this.currentMoveDistance += Math.abs(this.velocity.x);
-  }
+  public move(): void {}
 
   get asSolidObject(): SolidObject {
     return {
@@ -93,9 +65,7 @@ export class Enemy extends Character {
     }
   }
 
-  public attackCharacter(player: Player): number {
-    if (this.isColliding(player.asSolidObject)) {
-    }
+  public attackCharacter(_: Player): number {
     return 0;
   }
 

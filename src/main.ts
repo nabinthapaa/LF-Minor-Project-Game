@@ -4,13 +4,16 @@ import Camera from "./Classes/Camera";
 import GameManager from "./Classes/GameManager";
 import { Obstacle } from "./Classes/Obstacle";
 import { Player } from "./Classes/Player";
+import { Beeto } from "./Classes/enemies/Beeto";
+import BigDragon from "./Classes/enemies/BigDragon";
 import { Enemy } from "./Classes/enemies/Enemy";
 import { Canvas } from "./constants/Canvas";
-import { bigDirtBlockPostion } from "./constants/ObstaclePosition";
+import { bigDirtBlockPostionLvl1 as bigDirtBlockPostion } from "./constants/ObstaclePosition";
 import { obstacleSprite } from "./constants/ObstacleSprite";
 import { TILE_HEIGHT, TILE_WIDTH } from "./constants/Sprite";
 import { Mapdata, getCollisionMap, makePlatforms } from "./map/level1";
 import { Position } from "./types/Position";
+import { drawStartScreen } from "./Screens/StartScreen";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const ctx = canvas.getContext("2d")!;
@@ -19,6 +22,7 @@ let rows = Canvas.ROWS;
 let cols = Canvas.COLS;
 canvas.width = rows * TILE_WIDTH;
 canvas.height = cols * TILE_HEIGHT;
+canvas.style.border = "1px solid red";
 
 const columnDifference = cols - Mapdata.length;
 for (let i = 0; i < columnDifference; i++) {
@@ -36,11 +40,12 @@ const keySet = new Set();
 const player = new Player(platforms, cameraPosition);
 
 window.onload = () => {
-  draw();
+  drawStartScreen(ctx);
 };
 
 // TODO: Refactor this to use a game manager class
-const enemy: Enemy = new Enemy(cameraPosition, { x: 600, y: 25 * 16 - 64 });
+const enemy: Enemy = new Beeto(cameraPosition, { x: 600, y: 25 * 16 - 64 });
+const bigDragon: BigDragon = new BigDragon(cameraPosition, { x: 183, y: 270 });
 const obstacles: Obstacle[] = [];
 
 for (let i = 0; i < bigDirtBlockPostion.length; i++) {
@@ -54,22 +59,25 @@ for (let i = 0; i < bigDirtBlockPostion.length; i++) {
 const camera: Camera = new Camera();
 
 function drawStat() {
-  ctx.font = "30px Arial";
-  ctx.fillStyle = "red";
-  ctx.fillText(`Health: ${player.health}`, 10, 50);
+  ctx.font = "10px Shovel";
+  ctx.fillStyle = "white";
+  ctx.fillText(`Health: ${player.health}`, 10, 10);
 
-  ctx.font = "30px Arial";
-  ctx.fillStyle = "red";
-  ctx.fillText(`EnemyHealth: ${enemy.health}`, 10, 100);
+  ctx.font = "10px Shovel";
+  ctx.fillStyle = "white";
+  ctx.fillText(`Enemy Health: ${bigDragon.health}`, 10, 25);
 }
 
-const gameManager = new GameManager({
-  platforms,
-  player,
-  enemies: [enemy],
-  cameraPositionWorld: cameraPosition,
-  obstacles,
-});
+const gameManager = new GameManager(
+  {
+    platforms,
+    player,
+    enemies: [enemy, bigDragon],
+    cameraPositionWorld: cameraPosition,
+    obstacles,
+  },
+  ctx
+);
 
 let lastTime = 0;
 const FPS = 60;
@@ -142,3 +150,9 @@ printPlayerPosition.onclick = () => {
   console.log(player.position);
 };
 document.body.appendChild(printPlayerPosition);
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Enter") {
+    draw();
+  }
+});

@@ -248,6 +248,7 @@ export class Player extends Character {
         this.init();
       }
     }
+
     if (!this.shouldDamage && !this.damageTimeout) {
       this.damageTimeout = setTimeout(() => {
         this.shouldDamage = true;
