@@ -1,12 +1,12 @@
-import { beetoSprite } from "../constants/EnemySprite";
-import { AttackVariant } from "../enums/Attack";
-import { CharacterVariant } from "../enums/Character";
-import { TVelocity } from "../types/Character";
-import { Dimension, Position, SolidObject } from "../types/Position";
-import { isCollisionBetween } from "../utils/Collision";
-import { Character } from "./Character";
-import { Player } from "./Player";
-import { SpriteRender } from "./SpriteRenderer";
+import { beetoSprite } from "../../constants/EnemySprite";
+import { AttackVariant } from "../../enums/Attack";
+import { CharacterVariant } from "../../enums/Character";
+import { TVelocity } from "../../types/Character";
+import { Dimension, Position, SolidObject } from "../../types/Position";
+import { isCollisionBetween } from "../../utils/Collision";
+import { Character } from "../Character";
+import { Player } from "../Player";
+import { SpriteRender } from "../SpriteRenderer";
 
 export class Enemy extends Character {
   sprite = "walk";
@@ -19,6 +19,8 @@ export class Enemy extends Character {
   maxMoveDistance = 40;
   currentMoveDistance = 0;
   shouldFlip = false;
+  damageTimeout: ReturnType<typeof setTimeout> | null = null;
+  shouldDamage = true;
 
   dimension: Dimension = {
     width: beetoSprite[this.sprite].frameWidth,
@@ -79,9 +81,16 @@ export class Enemy extends Character {
     return isCollisionBetween(object, this.asSolidObject);
   }
 
-  public takeDamage(damage: number): number {
-    this.health = this.health ? this.health - damage : 0;
-    return 0;
+  public takeDamage(damage: number) {
+    if (this.shouldDamage) {
+      this.health = this.health ? this.health - damage : 0;
+    }
+    if (!this.shouldDamage && !this.damageTimeout) {
+      this.damageTimeout = setTimeout(() => {
+        this.shouldDamage = true;
+        this.damageTimeout = null;
+      }, 400);
+    }
   }
 
   public attackCharacter(player: Player): number {

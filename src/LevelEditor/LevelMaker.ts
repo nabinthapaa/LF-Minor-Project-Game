@@ -14,10 +14,10 @@ if (!leCtx) {
   throw new Error("Could not get canvas context");
 }
 
-const rows = 200 ;
+const rows = 200;
 const cols = 25;
 
-canvasLevelEditor.width = rows  * TILE_WIDTH;
+canvasLevelEditor.width = rows * TILE_WIDTH;
 canvasLevelEditor.height = cols * TILE_HEIGHT;
 
 const Mapdata = Array.from({ length: cols }, () =>
@@ -80,8 +80,7 @@ export class LevelMaker {
     const x = mousePositionInGrid.x;
     const y = mousePositionInGrid.y;
     Mapdata[y][x] = mousePositionInTileSet.y * 25 + mousePositionInTileSet.x;
-    console.log("🚀 ~ LevelMaker ~ levelEditor ~ Mapdata:", Mapdata)
-    
+    console.log("🚀 ~ LevelMaker ~ levelEditor ~ Mapdata:", Mapdata);
   }
 
   drawMap() {
@@ -106,7 +105,7 @@ export class LevelMaker {
   }
 
   getMapData() {
-    console.log(Mapdata)   
+    console.log(Mapdata);
     localStorage.setItem("mapData", JSON.stringify(Mapdata));
     // Download Map data
     const dataStr =
@@ -171,20 +170,16 @@ class TileSet {
 const levelMaker = new LevelMaker();
 const tilesSet = new TileSet();
 
-
-
 window.onload = () => {
   levelMaker.init();
   tilesSet.init();
 };
-
 
 const button = document.createElement("button");
 button.textContent = "Get Map Data";
 button.style.marginTop = "20px";
 button.style.display = "block";
 document.body.appendChild(button);
-
 
 const eraser = document.createElement("button");
 eraser.textContent = "Eraser";
@@ -200,8 +195,7 @@ loadMapData.style.display = "block";
 document.body.appendChild(loadMapData);
 
 loadMapData.onchange = (e: any) => {
-  if(e.target)
-    console.log(e.target.files[0])
+  if (e.target) console.log(e.target.files[0]);
   levelMaker.loadMapData(e.target.files[0]);
 };
 
@@ -210,8 +204,8 @@ button.onclick = () => {
 };
 
 eraser.onclick = () => {
-    mousePositionInTileSet.x = 4;
-    mousePositionInTileSet.y = 17;
+  mousePositionInTileSet.x = 4;
+  mousePositionInTileSet.y = 17;
 };
 
 tileCanvas.addEventListener("click", (e) => {

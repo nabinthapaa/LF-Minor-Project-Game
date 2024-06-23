@@ -7,7 +7,7 @@ export interface ICharacter {
   health?: number;
   attack?: TAttack[];
   position: Position;
-  dimension: Dimension; 
+  dimension: Dimension;
 
   attackCharacter?(character: ICharacter): number;
   takeDamage?(damage: number): void;

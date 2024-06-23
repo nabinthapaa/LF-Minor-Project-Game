@@ -14,7 +14,13 @@ import { Dimension, Position, SolidObject } from "../types/Position";
 import { Character } from "./Character";
 import Platform from "./Platform";
 import { SpriteRender } from "./SpriteRenderer";
-
+/**
+ *
+ *
+ * @export
+ * @class Player
+ * @extends {Character}
+ */
 export class Player extends Character {
   position: Position = {
     x: 0,
@@ -31,6 +37,8 @@ export class Player extends Character {
   isAttacking = false;
   isJumpAttacking = false;
   shouldFlip = false;
+  shouldDamage = true;
+  damageTimeout: ReturnType<typeof setTimeout> | null = null;
 
   health = 400;
   hitbox = {
@@ -39,8 +47,13 @@ export class Player extends Character {
     width: 36,
     height: 32,
   };
+  damageBox = {
+    x: this.position.x,
+    y: this.position.y,
+    width: 0,
+    height: 0,
+  };
 
-  nearbyPlatforms: Platform[] = [];
   render = new SpriteRender(PlayerSpriteDimensions[this.sprite]);
 
   constructor(public platforms: Platform[], public cameraPosition_: Position) {
@@ -63,6 +76,15 @@ export class Player extends Character {
     };
     this.cameraPosition_.x = 0;
     this.cameraPosition_.y = 0;
+    this.health = 400;
+    this.isGrounded = false;
+    this.isSpirteReset = false;
+    this.isGrounded = false;
+    this.importantAnimationPlaying = false;
+    this.isAttacking = false;
+    this.isJumpAttacking = false;
+    this.shouldFlip = false;
+    this.shouldDamage = false;
   }
 
   public updatePlayer() {
@@ -150,6 +172,7 @@ export class Player extends Character {
    */
   public jump(): void {
     if (!this.isGrounded) return;
+    this.isGrounded = false;
     this.velocity.y = JUMP_FORCE;
     this.position.y += this.velocity.y;
     this.sprite = "jump";
@@ -157,7 +180,6 @@ export class Player extends Character {
       this.switchSprite();
       this.currentSpiriteState = this.sprite;
     }
-    this.isGrounded = false;
   }
 
   /**
@@ -169,10 +191,14 @@ export class Player extends Character {
     if (this.isGrounded || this.isAttacking) return;
     this.isJumpAttacking = true;
     this.sprite = "jumpAttack";
+    this.addDamageBox();
     if (this.currentSpiriteState !== this.sprite) {
       this.switchSprite();
       this.currentSpiriteState = this.sprite;
     }
+    setInterval(() => {
+      this.resetDamageBox();
+    }, 100);
   }
 
   /**
@@ -181,15 +207,11 @@ export class Player extends Character {
    * @returns {void}
    */
   public rebound(): void {
-    this.isGrounded = false;
-    this.isJumpAttacking = true;
-    this.velocity.y = JUMP_FORCE;
-    this.position.y += this.velocity.y;
-    this.sprite = "jumpAttack";
-    if (this.currentSpiriteState !== this.sprite) {
-      this.switchSprite();
-      this.currentSpiriteState = this.sprite;
-    }
+    this.isAttacking = false;
+    this.isGrounded = true;
+    this.jumpAttack();
+    this.jump();
+    this.jumpAttack();
   }
 
   /**
@@ -204,10 +226,14 @@ export class Player extends Character {
       this.isAttacking = false;
     }, 50);
     this.importantAnimationPlaying = true;
+    this.addDamageBox();
     if (this.currentSpiriteState !== this.sprite) {
       this.switchSprite();
       this.currentSpiriteState = this.sprite;
     }
+    setInterval(() => {
+      this.resetDamageBox();
+    }, 100);
   }
 
   /**
@@ -216,7 +242,18 @@ export class Player extends Character {
    * @returns {void}
    */
   public takeDamage(damage: number): void {
-    this.health = this.health ? this.health - damage : 0;
+    if (this.shouldDamage) {
+      this.health = this.health ? this.health - damage : 0;
+      if (!this.health) {
+        this.init();
+      }
+    }
+    if (!this.shouldDamage && !this.damageTimeout) {
+      this.damageTimeout = setTimeout(() => {
+        this.shouldDamage = true;
+        this.damageTimeout = null;
+      }, 1000);
+    }
   }
 
   /**
@@ -289,5 +326,35 @@ export class Player extends Character {
     } else if (this.position.x + this.dimension.width >= 200 * 16) {
       this.position.x = Canvas.CANVAS_WIDTH - this.dimension.width;
     }
+  }
+
+  private addDamageBox(): void {
+    if (this.isAttacking) {
+      this.damageBox = {
+        x: this.shouldFlip
+          ? this.position.x + this.cameraPosition_.x - this.hitbox.width / 4
+          : this.position.x + this.hitbox.width,
+        y: this.position.y + this.hitbox.height / 2,
+        width: this.hitbox.width / 4,
+        height: this.hitbox.height / 2,
+      };
+    }
+    if (this.isJumpAttacking) {
+      this.damageBox = {
+        x: this.position.x + this.hitbox.width / 2 - this.hitbox.width / 4,
+        y: this.position.y + this.hitbox.height,
+        width: this.hitbox.width / 4,
+        height: this.hitbox.height / 4,
+      };
+    }
+  }
+
+  private resetDamageBox(): void {
+    this.damageBox = {
+      x: this.position.x,
+      y: this.position.y,
+      width: 0,
+      height: 0,
+    };
   }
 }

@@ -1,16 +1,16 @@
 import "./style.css";
 
-import { Player } from "./Classes/Player";
-import { TILE_HEIGHT, TILE_WIDTH } from "./constants/Sprite";
-import { Enemy } from "./Classes/Enemy";
-import { Mapdata, getCollisionMap, makePlatforms } from "./map/level1";
-import { Position } from "./types/Position";
 import Camera from "./Classes/Camera";
 import GameManager from "./Classes/GameManager";
 import { Obstacle } from "./Classes/Obstacle";
-import { obstacleSprite } from "./constants/ObstacleSprite";
-import { bigDirtBlockPostion } from "./constants/ObstaclePosition";
+import { Player } from "./Classes/Player";
+import { Enemy } from "./Classes/enemies/Enemy";
 import { Canvas } from "./constants/Canvas";
+import { bigDirtBlockPostion } from "./constants/ObstaclePosition";
+import { obstacleSprite } from "./constants/ObstacleSprite";
+import { TILE_HEIGHT, TILE_WIDTH } from "./constants/Sprite";
+import { Mapdata, getCollisionMap, makePlatforms } from "./map/level1";
+import { Position } from "./types/Position";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const ctx = canvas.getContext("2d")!;
@@ -79,18 +79,16 @@ function draw(currentTime: number = 0) {
   let deltaTime = currentTime - lastTime;
   if (deltaTime >= FRAME_DURATION) {
     lastTime = currentTime - (deltaTime % FRAME_DURATION);
-    ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    updatePlayerLocation();
+    handleKeyInputs();
     gameManager.update(ctx, Mapdata);
     camera.update(player.position);
     drawStat();
-    ctx.restore();
   }
   requestAnimationFrame(draw);
 }
 
-function updatePlayerLocation() {
+function handleKeyInputs() {
   if (gameManager.keySet.has("ArrowRight") || keySet.has("KeyL")) {
     player.moveRight();
     if (camera.shouldPanCameraLeft(ctx, cameraPosition)) {
@@ -105,6 +103,11 @@ function updatePlayerLocation() {
     }
   } else if (gameManager.keySet.has("Space")) {
     player.jump();
+  } else if (
+    gameManager.keySet.has("ArrowDown") &&
+    !gameManager.player.isGrounded
+  ) {
+    player.jumpAttack();
   } else if (gameManager.keySet.has("KeyS")) {
     player.attackNormal();
   } else {
@@ -121,18 +124,12 @@ document.addEventListener("keydown", (e) => {
     e.code === "ArrowDown"
   )
     e.preventDefault();
-  // console.log(keySet)
   gameManager.keySet.add(e.code);
 });
 
 document.addEventListener("keyup", (e) => {
   e.preventDefault();
   gameManager.keySet.delete(e.code);
-});
-
-//@ts-ignore
-document.addEventListener("mousedown", (e) => {
-  player.jumpAttack();
 });
 
 // TODO: Remove this

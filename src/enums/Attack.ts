@@ -1,6 +1,6 @@
-export enum AttackVariant{
-    JUMP,
-    NORMAL,
-    SPECIAL,
-    NPC
+export enum AttackVariant {
+  JUMP,
+  NORMAL,
+  SPECIAL,
+  NPC,
 }
