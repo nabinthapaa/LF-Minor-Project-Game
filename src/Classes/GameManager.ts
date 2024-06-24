@@ -29,9 +29,10 @@ export default class GameManager {
   player: Player;
   enemies: Enemy[];
   cameraPosition: Position = { x: 0, y: 0 };
-  obstacles?: Obstacle[];
+  obstacles: Obstacle[];
   nearbyPlatforms: Platform[] = [];
   keySet = new Set<string>();
+  bigDragonLastAttack = 0;
 
   constructor(
     {
@@ -64,7 +65,8 @@ export default class GameManager {
       if (enemy instanceof Beeto) enemy.move();
     });
     this.enemies.forEach((enemy) => {
-      enemy.renderEnemy(this.player, ctx);
+      if (enemy instanceof Beeto) enemy.renderEnemy(this.player, ctx);
+      if (enemy instanceof BigDragon) enemy.update(this.player, ctx);
     });
     this.player.drawPlayer(ctx);
     this.drawObstacles(ctx);
@@ -101,32 +103,36 @@ export default class GameManager {
   }
 
   public checkObstacleCollisions(): void {
-    this.obstacles?.forEach((obstacle, index) => {
+    for (let i = 0; i < this.obstacles?.length; i++) {
+      let obstacle = this.obstacles[i];
+      if (Math.abs(obstacle.position.x - this.player.position.x) > 50) continue;
       if (obstacle.isColliding(this.player.asSolidObject)) {
         if (!this.player.isAttacking && !this.player.isJumpAttacking) {
           resolveCollisionBetween(this.player, obstacle.asSolidObject);
-        } else if (
+        }
+        if (
           this.player.isJumpAttacking &&
           obstacle.isColliding(this.player.damageBox)
         ) {
           obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
-          resolveVerticalCollision(this.player, obstacle.asSolidObject);
           obstacle.dimension.height = 0;
           obstacle.dimension.width = 0;
           obstacle.position = { x: 0, y: 0 };
           this.player.rebound();
-          this.obstacles?.slice(index, 1);
-        } else if (
+          this.obstacles?.splice(i, 1);
+        }
+        if (
           this.player.isAttacking &&
-          obstacle.isColliding(this.player.damageBox)
+          isCollisionBetween(this.player.damageBox, obstacle.asSolidObject)
         ) {
           obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
           obstacle.dimension.height = 0;
           obstacle.dimension.width = 0;
           obstacle.position = { x: 0, y: 0 };
+          this.obstacles?.splice(i, 1);
         }
       }
-    });
+    }
   }
 
   private getNearbyEnemies = (): Enemy[] => {
@@ -139,14 +145,18 @@ export default class GameManager {
   };
 
   public checkPlayerEnemyCollision(): void {
-    this.getNearbyEnemies().forEach((enemy) => {
-      if (enemy.isColliding(this.player.hitbox) && enemy instanceof Beeto) {
-        this.handleBeetoAttack(enemy);
-      } else if (
-        Math.abs(enemy.position.x - this.player.position.x) < 500 &&
-        enemy instanceof BigDragon
-      ) {
-        this.handleBigDragonAttack(enemy);
+    this.getNearbyEnemies().forEach((enemy, index) => {
+      if (enemy.isAlive()) {
+        if (enemy.isColliding(this.player.hitbox) && enemy instanceof Beeto) {
+          this.handleBeetoAttack(enemy);
+        } else if (
+          Math.abs(enemy.position.x - this.player.position.x) < 500 &&
+          enemy instanceof BigDragon
+        ) {
+          this.handleBigDragonAttack(enemy);
+        }
+      } else {
+        this.enemies.splice(index, 1);
       }
     });
   }
@@ -206,6 +216,10 @@ export default class GameManager {
     }
   }
 
+  /**
+   * Handles the attack of the Beeto on enemy
+   * @param enemy The enemy with which the player is close to 
+   */
   private handleBeetoAttack(enemy: Beeto): void {
     if (
       this.player.isAttacking &&
@@ -226,6 +240,10 @@ export default class GameManager {
     }
   }
 
+  /**
+   * Handles the attack of the Big Dragon on enemy
+   * @param enemy The enemy with which the player is close to 
+   */
   private handleBigDragonAttack(enemy: BigDragon): void {
     if (
       this.player.isAttacking &&
@@ -246,7 +264,19 @@ export default class GameManager {
     ) {
       this.player.rebound();
     } else {
-      enemy.attackPlayer();
+      if (this.bigDragonLastAttack === 0) {
+        enemy.attackPlayer();
+        enemy.isAttacking = true;
+        this.bigDragonLastAttack = Date.now();
+      } else {
+        if (Date.now() - this.bigDragonLastAttack > 10000) {
+          enemy.attackPlayer();
+          this.bigDragonLastAttack = 0;
+        }
+      }
+      if (Date.now() - this.bigDragonLastAttack > 1000) {
+        enemy.isAttacking = false;
+      }
     }
   }
 }

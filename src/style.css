@@ -6,7 +6,7 @@
 
 @font-face {
   font-family: "Shovel";
-  src: url("/shovel-knight-extended/shovel-knight-extended.ttf") format("truetype");
+  src: url("/fonts/shovel-knight-extended.ttf") format("truetype");
 }
 
 body {

@@ -45,7 +45,7 @@ window.onload = () => {
 
 // TODO: Refactor this to use a game manager class
 const enemy: Enemy = new Beeto(cameraPosition, { x: 600, y: 25 * 16 - 64 });
-const bigDragon: BigDragon = new BigDragon(cameraPosition, { x: 183, y: 270 });
+const bigDragon: BigDragon = new BigDragon(cameraPosition, {x: 2990, y: 125});
 const obstacles: Obstacle[] = [];
 
 for (let i = 0; i < bigDirtBlockPostion.length; i++) {

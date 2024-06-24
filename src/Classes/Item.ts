@@ -14,4 +14,3 @@ export default class Item {
     ctx.strokeRect(this.x, this.y, this.width, this.height);
   }
 }
-// Compare this snippet from src/Classes/Player.ts:

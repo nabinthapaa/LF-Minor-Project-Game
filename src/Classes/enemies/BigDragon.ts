@@ -23,6 +23,8 @@ export default class BigDragon extends Enemy {
   attackTimeout: ReturnType<typeof setTimeout> | null = null;
   isAttacking = false;
   lastRemovedBubble = 0;
+  currentSprite: string = "";
+  attackTimer: number = 0;
 
   bubbles: Bubble[] = [];
   constructor(public cameraPosition: Position, public position: Position) {
@@ -40,15 +42,18 @@ export default class BigDragon extends Enemy {
   }
 
   private switchSprite(): void {
-    this.render.switchSprite(bigDragonSprite[this.sprite]);
+    if (this.sprite === this.currentSprite) return;
+    this.currentSprite = this.sprite;
     this.dimension = {
       width: bigDragonSprite[this.sprite].frameWidth,
       height: bigDragonSprite[this.sprite].frameHeight,
     };
+    this.render.switchSprite(bigDragonSprite[this.sprite]);
   }
 
   public renderEnemy(player: Player, ctx: CanvasRenderingContext2D): void {
-    if (this.isAttacking) this.moveBubbles(player, ctx);
+    if (this.isAttacking || this.bubbles.length > 0)
+      this.moveBubbles(player, ctx);
     this.render.animateSprite();
     this.render.drawFrame(
       ctx,
@@ -57,15 +62,6 @@ export default class BigDragon extends Enemy {
       this.shouldFlip,
       this.cameraPosition
     );
-    ctx.strokeStyle = "red";
-    ctx.strokeRect(
-      this.position.x - this.cameraPosition.x,
-      this.position.y - this.cameraPosition.y,
-      this.dimension.width,
-      this.dimension.height
-    );
-    this.drawHitBox(ctx);
-    this.drawNoHitBox(ctx);
   }
 
   public addDamageHitBox(): void {
@@ -88,34 +84,16 @@ export default class BigDragon extends Enemy {
     this.noHitbox.width = width;
   }
 
-  private drawNoHitBox(ctx: CanvasRenderingContext2D): void {
-    ctx.save();
-    ctx.strokeStyle = "blue";
-    ctx.strokeRect(
-      this.noHitbox.x - this.cameraPosition.x,
-      this.noHitbox.y - this.cameraPosition.y,
-      this.noHitbox.width,
-      this.noHitbox.height
-    );
-    ctx.restore();
-  }
-
-  private drawHitBox(ctx: CanvasRenderingContext2D): void {
-    ctx.save();
-    ctx.strokeStyle = "green";
-    ctx.strokeRect(
-      this.hitbox.x - this.cameraPosition.x,
-      this.hitbox.y - this.cameraPosition.y,
-      this.hitbox.width,
-      this.hitbox.height
-    );
-    ctx.restore();
+  public update(player: Player, ctx: CanvasRenderingContext2D): void {
+    if (this.isAttacking) this.sprite = "attack";
+    else this.sprite = "sleep";
+    if(this.isAttacking && this.bubbles.length === 0) this.generateBubbles();
+    this.renderEnemy(player, ctx);
+    this.switchSprite();
   }
 
   public move(): void {
     if (this.sprite === "sleep" && !this.isAttacking) {
-      console.log("Moving");
-      console.log(this.position);
       this.sprite = "moveFront";
       this.switchSprite();
       if (this.currentMoveDistance === this.maxMoveDistance) {
@@ -129,40 +107,34 @@ export default class BigDragon extends Enemy {
   }
 
   public attackPlayer() {
-    if (this.isAttacking && this.sprite === "attack") {
-      this.sprite = "sleep";
-      this.switchSprite();
+    if (this.isAttacking) {
+      this.sprite = "attack";
       return;
     }
-    if (this.sprite === "sleep" && !this.isAttacking) {
-      this.sprite = "attack";
-      if (!this.attackTimeout && this.sprite === "attack") {
-        this.isAttacking = true;
-        this.switchSprite();
-        this.attackTimeout = setTimeout(() => {
-          this.sprite = "sleep";
-          this.switchSprite();
-          this.attackTimeout = null;
-          this.isAttacking = false;
-        }, 10000);
-      }
+    if (!this.isAttacking) {
+      this.attackTimer = 0;
+      this.sprite = "sleep";
     }
   }
 
   private moveBubbles(player: Player, ctx: CanvasRenderingContext2D) {
+    if (!this.isAlive()) {
+      this.bubbles = [];
+      return;
+    }
     this.bubbles.forEach((bubble, index) => {
       if (bubble.isCollidingWithObject(player.hitbox)) {
         player.takeDamage(10);
         player.shouldDamage = false;
         this.bubbles.splice(index, 1);
         if (index === 0) this.lastRemovedBubble++;
-        this.addBubbles();
+        if (this.isAttacking) this.addBubbles();
       }
 
       if (bubble.isOutOfBounds()) {
         this.bubbles.splice(index, 1);
         if (index === 0) this.lastRemovedBubble++;
-        this.addBubbles();
+        if (this.isAttacking) this.addBubbles();
       }
       bubble.move();
       bubble.update(ctx);
@@ -170,6 +142,7 @@ export default class BigDragon extends Enemy {
   }
 
   private addBubbles() {
+    if (!this.isAlive()) return;
     if (this.lastRemovedBubble === 3) {
       this.lastRemovedBubble = 0;
     }

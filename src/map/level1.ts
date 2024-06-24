@@ -1,7 +1,7 @@
 import Platform from "../Classes/Platform";
 import { Canvas } from "../constants/Canvas";
 import { EPlatform } from "../enums/Platform";
-import mapData from "./mapData.json";
+import mapData from "./mapData2.json";
 
 // TODO: Move to constants if works
 const collisionLevel1Tiles = new Set([

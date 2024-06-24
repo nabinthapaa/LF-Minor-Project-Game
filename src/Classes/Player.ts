@@ -107,7 +107,19 @@ export class Player extends Character {
       this.shouldFlip,
       this.cameraPosition_
     );
+    this.drawDamageBox(ctx);
   }
+
+  drawDamageBox(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = "red";
+    ctx.fillRect(
+      this.damageBox.x,
+      this.damageBox.y,
+      this.damageBox.width,
+      this.damageBox.height
+    );
+  }
+  
 
   /**
    * Reset the player sprite to idle sprite if
@@ -127,6 +139,7 @@ export class Player extends Character {
     this.currentSpiriteState = this.sprite;
     this.isAttacking = false;
     this.isJumpAttacking = false;
+    this.applyGravity();
   }
 
   /**
@@ -198,7 +211,7 @@ export class Player extends Character {
     }
     setInterval(() => {
       this.resetDamageBox();
-    }, 100);
+    }, 1000);
   }
 
   /**
@@ -209,7 +222,6 @@ export class Player extends Character {
   public rebound(): void {
     this.isAttacking = false;
     this.isGrounded = true;
-    this.jumpAttack();
     this.jump();
     this.jumpAttack();
   }
@@ -220,11 +232,12 @@ export class Player extends Character {
    */
   public attackNormal(): void {
     if (this.isAttacking || this.isJumpAttacking) return;
+    if(this.shouldFlip) this.position.x -= 10;
     this.sprite = "dig";
     this.isAttacking = true;
     setTimeout(() => {
       this.isAttacking = false;
-    }, 50);
+    }, 500);
     this.importantAnimationPlaying = true;
     this.addDamageBox();
     if (this.currentSpiriteState !== this.sprite) {
@@ -233,7 +246,7 @@ export class Player extends Character {
     }
     setInterval(() => {
       this.resetDamageBox();
-    }, 100);
+    }, 500);
   }
 
   /**
@@ -333,11 +346,11 @@ export class Player extends Character {
     if (this.isAttacking) {
       this.damageBox = {
         x: this.shouldFlip
-          ? this.position.x + this.cameraPosition_.x - this.hitbox.width / 4
+          ? this.position.x - this.hitbox.width / 4
           : this.position.x + this.hitbox.width,
         y: this.position.y + this.hitbox.height / 2,
         width: this.hitbox.width / 4,
-        height: this.hitbox.height / 2,
+        height: this.hitbox.height / 4,
       };
     }
     if (this.isJumpAttacking) {

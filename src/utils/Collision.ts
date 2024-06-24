@@ -23,17 +23,18 @@ export function resolveCollisionBetween(object1: Player, object2: SolidObject) {
   let dx: number;
   let dy: number;
 
-  if (object1.position.x < object2.x) {
-    dx = object1.position.x + object1.dimension.width - object2.x;
+  if (object1.hitbox.x < object2.x) {
+    dx = object1.hitbox.x + object1.hitbox.width - object2.x;
   } else {
-    dx = object2.x + object2.width - object1.position.x;
+    dx = object2.x + object2.width - object1.hitbox.x;
   }
 
-  if (object1.position.y < object2.y) {
-    dy = object1.position.y + object1.dimension.height - object2.y;
+  if (object1.hitbox.y < object2.y) {
+    dy = object1.hitbox.y + object1.hitbox.height - object2.y;
   } else {
-    dy = object2.y + object2.height - object1.position.y;
+    dy = object2.y + object2.height - object1.hitbox.y;
   }
+
   if (dx < dy) {
     resolveHorizontalCollision(object1, object2);
   } else {
