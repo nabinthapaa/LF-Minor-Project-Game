@@ -17,10 +17,3 @@ export type TSprite = {
   frameCount: number;
 };
 
-export type TSpriteDimensions = {
-  [key: string]: TSprite;
-};
-
-export type TSpriteImage = {
-  [key: string]: HTMLImageElement;
-};

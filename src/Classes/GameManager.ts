@@ -1,5 +1,7 @@
+import { levelInfo } from "../LevelsData/Levels";
 import { obstacleSprite } from "../constants/ObstacleSprite";
 import { TILESET_COLUMNS, TILE_HEIGHT, TILE_WIDTH } from "../constants/Sprite";
+import { EItem } from "../enums/Items";
 import { EPlatform } from "../enums/Platform";
 import { tileset } from "../images/preLoad";
 import { Position } from "../types/Position";
@@ -9,59 +11,76 @@ import {
   resolveHorizontalCollision,
   resolveVerticalCollision,
 } from "../utils/Collision";
+import DirtPile from "./DirtPile";
+import Item from "./Item";
 import { Obstacle } from "./Obstacle";
 import Platform from "./Platform";
 import { Player } from "./Player";
+import { Beeto } from "./enemies/Beeto";
+import BigDragon from "./enemies/BigDragon";
 import { Enemy } from "./enemies/Enemy";
 
+const items: EItem[] = [
+  EItem.GOLD,
+  EItem.DIAMOND,
+  EItem.REDGEM,
+  EItem.PURPLEGEM,
+];
+
 interface GameManagerConstructor {
-  platforms: Platform[];
   player: Player;
-  enemies: Enemy[];
   cameraPositionWorld: Position;
-  obstacles: Obstacle[];
 }
 
 export default class GameManager {
-  platforms: Platform[];
   player: Player;
-  enemies: Enemy[];
   cameraPosition: Position = { x: 0, y: 0 };
-  obstacles?: Obstacle[];
   nearbyPlatforms: Platform[] = [];
   keySet = new Set<string>();
+  bigDragonLastAttack = 0;
+  currentLevel = 1;
+  level = 1;
+  maxLevel = 2;
+  MapData: number[][] = levelInfo[`${this.level}`].map;
+  platforms: Platform[] = [...levelInfo[`${this.level}`].platforms];
+  obstacles: Obstacle[] = [...levelInfo[`${this.level}`].obstacles];
+  enemies: Enemy[] = [...levelInfo[`${this.level}`].enemies];
+  items: Item[] = [];
+  dirtPiles: DirtPile[] = [...levelInfo[`${this.level}`].dirtPiles];
 
-  constructor({
-    platforms,
-    player,
-    enemies,
-    cameraPositionWorld,
-    obstacles,
-  }: GameManagerConstructor) {
-    this.platforms = platforms;
+  constructor(
+    { player, cameraPositionWorld }: GameManagerConstructor,
+    public ctx: CanvasRenderingContext2D
+  ) {
     this.player = player;
-    this.enemies = enemies;
     this.cameraPosition = cameraPositionWorld;
-    this.obstacles = obstacles;
   }
 
-  public update(ctx: CanvasRenderingContext2D, MapData: number[][]): void {
-    this.drawMap(ctx, MapData);
+  public update(ctx: CanvasRenderingContext2D): void {
+    //Check Current level
+    if (this.currentLevel !== this.level) {
+      this.handleLevelChange();
+    }
     // Update Phase
     this.updatePlatformsNearby();
     this.checkHorizontalPlatformCollision();
     this.player.updatePlayer();
     this.checkVerticalPlatformCollision();
     this.checkObstacleCollisions();
+    this.enemies.forEach((enemy) => {
+      if (enemy instanceof Beeto) enemy.move();
+    });
     this.checkPlayerEnemyCollision();
     // Draw Phase
-    this.enemies.forEach((enemy) => {
-      enemy.move();
-    });
-    this.enemies.forEach((enemy) => {
-      enemy.renderEnemy(ctx);
-    });
+    this.checkItemCollisions();
+    this.checkDirtPileHit();
+    this.drawMap(ctx, this.MapData);
     this.player.drawPlayer(ctx);
+    this.drawItems(ctx);
+    this.drawDirtPile(ctx);
+    this.enemies.forEach((enemy) => {
+      enemy.update(this.player, ctx);
+    });
     this.drawObstacles(ctx);
   }
 
@@ -89,6 +108,60 @@ export default class GameManager {
     }
   }
 
+  public dropItem(x: number, y: number): void {
+    for (let i = 0; i < 3; i++) {
+      let randomItem = items[Math.floor(Math.random() * items.length)];
+      console.log(randomItem + " dropped");
+      let x_pos = x + (Math.random() > 0.5 ? 10 : -10);
+      this.items.push(new Item(x_pos, y, randomItem));
+    }
+  }
+
+  public drawItems(ctx: CanvasRenderingContext2D): void {
+    this.items.forEach((item) => {
+      item.update(ctx);
+    });
+  }
+
+  public checkItemCollisions(): void {
+    for (let i = 0; i < this.items.length; i++) {
+      let item = this.items[i];
+      if (item.isColldingWithPlayer(this.player.hitbox)) {
+        if (!item.isMoving) {
+          this.player.collectItem(item.type);
+          this.items.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  public drawDirtPile(ctx: CanvasRenderingContext2D): void {
+    this.dirtPiles.forEach((dirtPile) => {
+      dirtPile.update(ctx);
+    });
+  }
+
+  public checkDirtPileHit(): void {
+    for (let i = 0; i < this.dirtPiles.length; i++) {
+      let dirtPile = this.dirtPiles[i];
+      if (dirtPile.isColldingWithPlayer(this.player.asSolidObject)) {
+        if (this.player.isAttacking) {
+          dirtPile.takeDamage(30);
+          if (dirtPile.health <= 0) {
+            this.dropItem(dirtPile.x, dirtPile.y + dirtPile.height - 10);
+            this.dirtPiles.splice(i, 1);
+          }
+        }
+      }
+    }
+  }
+
+  public drawPlatforms(ctx: CanvasRenderingContext2D): void {
+    this.platforms.forEach((platform) => {
+      platform.draw(ctx);
+    });
+  }
+
   public drawObstacles(ctx: CanvasRenderingContext2D): void {
     this.obstacles?.forEach((obstacle) => {
       obstacle.draw(ctx, this.cameraPosition);
@@ -96,54 +169,80 @@ export default class GameManager {
   }
 
   public checkObstacleCollisions(): void {
-    this.obstacles?.forEach((obstacle, index) => {
+    for (let i = 0; i < this.obstacles?.length; i++) {
+      let obstacle = this.obstacles[i];
+      if (Math.abs(obstacle.position.x - this.player.position.x) > 50) continue;
       if (obstacle.isColliding(this.player.asSolidObject)) {
         if (!this.player.isAttacking && !this.player.isJumpAttacking) {
           resolveCollisionBetween(this.player, obstacle.asSolidObject);
-        } else if (
+        }
+        if (
           this.player.isJumpAttacking &&
           obstacle.isColliding(this.player.damageBox)
         ) {
           obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
           resolveVerticalCollision(this.player, obstacle.asSolidObject);
-          obstacle.dimension.height = 0;
-          obstacle.dimension.width = 0;
-          obstacle.position = { x: 0, y: 0 };
           this.player.rebound();
-          this.obstacles?.slice(index, 1);
-        } else if (
+          this.dropItem(
+            obstacle.position.x,
+            obstacle.position.y + obstacle.dimension.height - 10
+          );
+          this.obstacles?.splice(i, 1);
+        }
+        if (
           this.player.isAttacking &&
           obstacle.isColliding(this.player.damageBox)
         ) {
           obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
-          obstacle.dimension.height = 0;
-          obstacle.dimension.width = 0;
-          obstacle.position = { x: 0, y: 0 };
+          this.dropItem(
+            obstacle.position.x,
+            obstacle.position.y + obstacle.dimension.height - 10
+          );
+          this.obstacles?.splice(i, 1);
         }
       }
-    });
+    }
   }
 
+  private handleLevelChange(): void {
+    if (this.currentLevel > this.maxLevel) this.level = this.currentLevel = 1;
+    this.level = this.currentLevel;
+    this.MapData = levelInfo[`${this.level}`].map;
+    this.platforms = [...levelInfo[`${this.level}`].platforms];
+    this.obstacles = [...levelInfo[`${this.level}`].obstacles];
+    this.enemies = [...levelInfo[`${this.level}`].enemies];
+    this.player.init();
+    this.player.health = 400;
+    this.cameraPosition.x = 0;
+    this.cameraPosition.y = 0;
+  }
+
+  private getNearbyEnemies = (): Enemy[] => {
+    return this.enemies.filter((enemy) => {
+      return (
+        Math.abs(enemy.position.x - this.player.position.x) < 500 ||
+        Math.abs(enemy.position.y - this.player.position.y) < 200
+      );
+    });
+  };
+
   public checkPlayerEnemyCollision(): void {
-    this.enemies.forEach((enemy) => {
-      if (enemy.isColliding(this.player.hitbox)) {
-        if (
-          this.player.isAttacking &&
-          isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
-        ) {
-          enemy.takeDamage(50);
-          enemy.shouldDamage = false;
+    this.getNearbyEnemies().forEach((enemy, index) => {
+      if (enemy.isAlive()) {
+        if (enemy.isColliding(this.player.hitbox) && enemy instanceof Beeto) {
+          this.handleBeetoAttack(enemy);
         } else if (
-          this.player.isJumpAttacking &&
-          isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+          Math.abs(enemy.position.x - this.player.position.x) < 500 &&
+          enemy instanceof BigDragon
         ) {
-          enemy.takeDamage(100);
-          enemy.shouldDamage = false
-          this.player.rebound();
-        } else if (enemy.isColliding(this.player.asSolidObject)) {
-          this.player.takeDamage(10);
-          this.player.shouldDamage = false;
+          this.handleBigDragonAttack(enemy);
         }
+      } else {
+        this.dropItem(
+          enemy.position.x,
+          enemy.position.y + enemy.dimension.height - 10
+        );
+        this.enemies.splice(index, 1);
       }
     });
   }
@@ -203,9 +302,67 @@ export default class GameManager {
     }
   }
 
-  public checkPlayerAttack(): void {}
-  public checkPlayerDamage(): void {}
+  /**
+   * Handles the attack of the Beeto on enemy
+   * @param enemy The enemy with which the player is close to
+   */
+  private handleBeetoAttack(enemy: Beeto): void {
+    if (
+      this.player.isAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(50);
+      enemy.shouldDamage = false;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(100);
+      enemy.shouldDamage = false;
+      this.player.rebound();
+    } else if (enemy.isColliding(this.player.asSolidObject)) {
+      this.player.takeDamage(10);
+      this.player.isInvincible = false;
+    }
+  }
 
-  public checkEnemyAttack(): void {}
-  public checkEnemyDamage(): void {}
+  /**
+   * Handles the attack of the Big Dragon on enemy
+   * @param enemy The enemy with which the player is close to
+   */
+  private handleBigDragonAttack(enemy: BigDragon): void {
+    if (
+      this.player.isAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.hitbox)
+    ) {
+      enemy.takeDamage(50);
+      enemy.shouldDamage = false;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.hitbox)
+    ) {
+      enemy.takeDamage(100);
+      this.player.rebound();
+      enemy.shouldDamage = false;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.noHitbox)
+    ) {
+      this.player.rebound();
+    } else {
+      if (this.bigDragonLastAttack === 0) {
+        enemy.attackPlayer();
+        enemy.isAttacking = true;
+        this.bigDragonLastAttack = Date.now();
+      } else {
+        if (Date.now() - this.bigDragonLastAttack > 5000) {
+          enemy.attackPlayer();
+          this.bigDragonLastAttack = 0;
+        }
+      }
+      if (Date.now() - this.bigDragonLastAttack > 1000) {
+        enemy.isAttacking = false;
+      }
+    }
+  }
 }

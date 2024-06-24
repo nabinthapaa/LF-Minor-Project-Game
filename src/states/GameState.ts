@@ -3,14 +3,7 @@ const GameState = {
   RUNNING: "RUNNING",
   PAUSED: "PAUSED",
   GAME_OVER: "GAME_OVER",
-};
-
-export const PlayerState = {
-  IDLE: "IDLE",
-  WALKING: "WALKING",
-  JUMPING: "JUMPING",
-  FALLING: "FALLING",
-  DEAD: "DEAD",
+  CURRENT_LEVEL: 1,
 };
 
 export const PlayerStats = {

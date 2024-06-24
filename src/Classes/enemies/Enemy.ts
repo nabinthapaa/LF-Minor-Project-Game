@@ -10,14 +10,17 @@ import { SpriteRender } from "../SpriteRenderer";
 
 export class Enemy extends Character {
   sprite = "walk";
-  health?: number | undefined;
+  health: number;
   velocity: TVelocity = {
     x: 0.5,
     y: 0,
   };
+  healthBarWidth: number = 50;
 
+  maxHealthBarWidth = 50;
   maxMoveDistance = 40;
   currentMoveDistance = 0;
+  maxHealth = 100;
   shouldFlip = false;
   damageTimeout: ReturnType<typeof setTimeout> | null = null;
   shouldDamage = true;
@@ -34,39 +37,15 @@ export class Enemy extends Character {
       { name: AttackVariant.NORMAL, damage: 100 },
     ]);
     this.health = 100;
+    this.healthBarWidth =
+      this.dimension.width > this.maxHealthBarWidth
+        ? this.maxHealthBarWidth
+        : this.dimension.width;
   }
 
-  public renderEnemy(ctx: CanvasRenderingContext2D): void {
-    if (!this.isAlive()) {
-      this.dimension = {
-        width: 0,
-        height: 0,
-      };
-      this.position = {
-        x: 0,
-        y: 0,
-      };
-    }
-    this.render.animateSprite();
-    this.render.drawFrame(
-      ctx,
-      this.position,
-      this.dimension,
-      this.shouldFlip,
-      this.cameraPosition
-    );
-  }
-
-  public move(): void {
-    if (!this.isAlive()) return;
-    if (this.currentMoveDistance >= this.maxMoveDistance) {
-      this.velocity.x = -this.velocity.x;
-      this.currentMoveDistance = 0;
-      this.shouldFlip = !this.shouldFlip;
-    }
-    this.position.x += this.velocity.x;
-    this.currentMoveDistance += Math.abs(this.velocity.x);
-  }
+  public update(_: Player, __: CanvasRenderingContext2D): void {}
+  public renderEnemy(_: Player, __: CanvasRenderingContext2D): void {}
+  public move(): void {}
 
   get asSolidObject(): SolidObject {
     return {
@@ -89,17 +68,34 @@ export class Enemy extends Character {
       this.damageTimeout = setTimeout(() => {
         this.shouldDamage = true;
         this.damageTimeout = null;
-      }, 400);
+      }, 500);
     }
   }
 
-  public attackCharacter(player: Player): number {
-    if (this.isColliding(player.asSolidObject)) {
-    }
+  public attackCharacter(_: Player): number {
     return 0;
   }
 
   public isAlive(): boolean {
-    return !!this.health;
+    return  this.health > 0;
+  }
+
+  public drawHealthBar(ctx: CanvasRenderingContext2D): void {
+    if (!this.isAlive()) return;
+    let healthBarOffset = 10;
+    ctx.fillStyle = "#0c210c";
+    ctx.fillRect(
+      this.position.x + this.cameraPosition.x,
+      this.position.y - healthBarOffset,
+      this.healthBarWidth,
+      2
+    );
+    ctx.fillStyle = "#33cf67";
+    ctx.fillRect(
+      this.position.x + this.cameraPosition.x,
+      this.position.y - healthBarOffset,
+      this.healthBarWidth * (this.health / this.maxHealth),
+      2
+    );
   }
 }

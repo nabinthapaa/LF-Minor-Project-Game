@@ -9,10 +9,10 @@ import { TILE_HEIGHT } from "../constants/Sprite";
 import { PlayerSpriteDimensions } from "../constants/SpriteDimensions";
 import { AttackVariant } from "../enums/Attack";
 import { CharacterVariant } from "../enums/Character";
+import { EItem } from "../enums/Items";
 import { TVelocity } from "../types/Character";
 import { Dimension, Position, SolidObject } from "../types/Position";
 import { Character } from "./Character";
-import Platform from "./Platform";
 import { SpriteRender } from "./SpriteRenderer";
 /**
  *
@@ -26,21 +26,6 @@ export class Player extends Character {
     x: 0,
     y: 0,
   };
-  dimension: Dimension;
-  velocity: TVelocity;
-  sprite = "shine";
-  currentSpiriteState = "shine";
-
-  isSpirteReset = false;
-  isGrounded = false;
-  importantAnimationPlaying = false;
-  isAttacking = false;
-  isJumpAttacking = false;
-  shouldFlip = false;
-  shouldDamage = true;
-  damageTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  health = 400;
   hitbox = {
     x: this.position.x,
     y: this.position.y,
@@ -54,9 +39,25 @@ export class Player extends Character {
     height: 0,
   };
 
+  dimension: Dimension;
+  velocity: TVelocity;
+  sprite = "idle";
+  currentSpiriteState = "idle";
+
+  isSpirteReset = false;
+  isGrounded = false;
+  importantAnimationPlaying = false;
+  isAttacking = false;
+  isJumpAttacking = false;
+  shouldFlip = false;
+  isInvincible = true;
+  damageTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  health = 400;
+  gold = 0;
   render = new SpriteRender(PlayerSpriteDimensions[this.sprite]);
 
-  constructor(public platforms: Platform[], public cameraPosition_: Position) {
+  constructor(public cameraPosition_: Position) {
     super(CharacterVariant.PLAYER, 400, [
       { name: AttackVariant.NORMAL, damage: 100 },
       { name: AttackVariant.JUMP, damage: 200 },
@@ -84,12 +85,13 @@ export class Player extends Character {
     this.isAttacking = false;
     this.isJumpAttacking = false;
     this.shouldFlip = false;
-    this.shouldDamage = false;
+    this.isInvincible = false;
   }
 
   public updatePlayer() {
     this.checkCanvasHorizontalEdgeCollision();
     this.applyGravity();
+    this.addDamageBox();
     this.updateHitBox();
   }
 
@@ -121,12 +123,13 @@ export class Player extends Character {
       this.isSpirteReset
     )
       return;
-    this.sprite = "shine";
+    this.sprite = "idle";
     this.switchSprite();
     this.isSpirteReset = true;
     this.currentSpiriteState = this.sprite;
     this.isAttacking = false;
     this.isJumpAttacking = false;
+    this.applyGravity();
   }
 
   /**
@@ -140,10 +143,7 @@ export class Player extends Character {
     this.shouldFlip = true;
     if (!this.isGrounded) return;
     this.sprite = "walk";
-    if (this.currentSpiriteState !== this.sprite) {
-      this.switchSprite();
-      this.currentSpiriteState = this.sprite;
-    }
+    this.switchSprite();
     this.isGrounded = false;
   }
 
@@ -158,10 +158,7 @@ export class Player extends Character {
     this.shouldFlip = false;
     if (!this.isGrounded) return;
     this.sprite = "walk";
-    if (this.currentSpiriteState !== this.sprite) {
-      this.switchSprite();
-      this.currentSpiriteState = this.sprite;
-    }
+    this.switchSprite();
     this.isGrounded = false;
   }
 
@@ -176,10 +173,7 @@ export class Player extends Character {
     this.velocity.y = JUMP_FORCE;
     this.position.y += this.velocity.y;
     this.sprite = "jump";
-    if (this.currentSpiriteState !== this.sprite) {
-      this.switchSprite();
-      this.currentSpiriteState = this.sprite;
-    }
+    this.switchSprite();
   }
 
   /**
@@ -189,16 +183,12 @@ export class Player extends Character {
    */
   public jumpAttack(): void {
     if (this.isGrounded || this.isAttacking) return;
-    this.isJumpAttacking = true;
     this.sprite = "jumpAttack";
-    this.addDamageBox();
-    if (this.currentSpiriteState !== this.sprite) {
-      this.switchSprite();
-      this.currentSpiriteState = this.sprite;
-    }
-    setInterval(() => {
+    this.isJumpAttacking = true;
+    this.switchSprite();
+    setTimeout(() => {
       this.resetDamageBox();
-    }, 100);
+    }, 1000);
   }
 
   /**
@@ -209,7 +199,6 @@ export class Player extends Character {
   public rebound(): void {
     this.isAttacking = false;
     this.isGrounded = true;
-    this.jumpAttack();
     this.jump();
     this.jumpAttack();
   }
@@ -220,20 +209,16 @@ export class Player extends Character {
    */
   public attackNormal(): void {
     if (this.isAttacking || this.isJumpAttacking) return;
+    if (this.shouldFlip) this.position.x -= 10;
     this.sprite = "dig";
     this.isAttacking = true;
-    setTimeout(() => {
-      this.isAttacking = false;
-    }, 50);
     this.importantAnimationPlaying = true;
-    this.addDamageBox();
-    if (this.currentSpiriteState !== this.sprite) {
-      this.switchSprite();
-      this.currentSpiriteState = this.sprite;
-    }
-    setInterval(() => {
+    this.switchSprite();
+    setTimeout(() => {
+      if (this.shouldFlip) this.position.x += 10;
+      this.isAttacking = false;
       this.resetDamageBox();
-    }, 100);
+    }, 500);
   }
 
   /**
@@ -242,15 +227,16 @@ export class Player extends Character {
    * @returns {void}
    */
   public takeDamage(damage: number): void {
-    if (this.shouldDamage) {
-      this.health = this.health ? this.health - damage : 0;
-      if (!this.health) {
+    if (this.isInvincible) {
+      this.health = this.health > 0 ? this.health - damage : 0;
+      if (!this.isAlive()) {
         this.init();
       }
     }
-    if (!this.shouldDamage && !this.damageTimeout) {
+
+    if (!this.isInvincible && !this.damageTimeout) {
       this.damageTimeout = setTimeout(() => {
-        this.shouldDamage = true;
+        this.isInvincible = true;
         this.damageTimeout = null;
       }, 1000);
     }
@@ -261,7 +247,26 @@ export class Player extends Character {
    * @returns {boolean}
    */
   public isAlive(): boolean {
-    return !!this.health;
+    return this.health > 0;
+  }
+
+  public collectItem(item: EItem) {
+    switch (item) {
+      case EItem.GOLD:
+        this.gold += 50;
+        break;
+      case EItem.DIAMOND:
+        this.gold += 120;
+        break;
+      case EItem.REDGEM:
+        this.gold += 150;
+        break;
+      case EItem.PURPLEGEM:
+        this.gold += 200;
+        break;
+      default:
+        break;
+    }
   }
 
   /**
@@ -297,6 +302,8 @@ export class Player extends Character {
    * @returns {void}
    */
   private switchSprite(): void {
+    if (this.currentSpiriteState === this.sprite) return;
+    this.currentSpiriteState = this.sprite;
     let spriteToSwitch = PlayerSpriteDimensions[this.sprite];
     this.render.switchSprite(spriteToSwitch);
     this.dimension = {
@@ -332,11 +339,11 @@ export class Player extends Character {
     if (this.isAttacking) {
       this.damageBox = {
         x: this.shouldFlip
-          ? this.position.x + this.cameraPosition_.x - this.hitbox.width / 4
+          ? this.position.x - this.hitbox.width / 4
           : this.position.x + this.hitbox.width,
         y: this.position.y + this.hitbox.height / 2,
         width: this.hitbox.width / 4,
-        height: this.hitbox.height / 2,
+        height: this.hitbox.height / 4,
       };
     }
     if (this.isJumpAttacking) {

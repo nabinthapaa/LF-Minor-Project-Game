@@ -1,4 +1,6 @@
+import { Obstacle } from "../Classes/Obstacle";
 import { Position } from "../types/Position";
+import { obstacleSprite } from "./ObstacleSprite";
 
 export const bigDirtBlockPostionLvl1: Position[] = [
   { x: 672, y: 257 },
@@ -8,18 +10,22 @@ export const bigDirtBlockPostionLvl1: Position[] = [
   { x: 2681, y: 320 },
   { x: 2681, y: 288 },
   { x: 2681, y: 256 },
-  { x: 2681, y: 224 },
-  { x: 2681, y: 192 },
-  { x: 2681, y: 160 },
-  { x: 2681, y: 128 },
 ];
 
-export const bigDirtBlockPostion: Position[] = [
-  { x: 66, y: 284 },
-  { x: 114, y: 230 },
+export const bigDirtBlockPostionLv2: Position[] = [
+  { x: 114, y: 220 },
   { x: 114, y: 252 },
   { x: 114, y: 284 },
-  { x: 66, y: 316 },
-  { x: 708, y: 317 },
+  { x: 66, y: 288 },
+  { x: 66, y: 320 },
   { x: 1030, y: 173 },
+  { x: 708, y: 319 },
 ];
+
+export const bigDirtBlockLvl1: Obstacle[] = bigDirtBlockPostionLvl1.map(
+  (position) => new Obstacle(position, obstacleSprite["bigDirtBlock"])
+);
+
+export const bigDirtBlockLvl2: Obstacle[] = bigDirtBlockPostionLv2.map(
+  (position) => new Obstacle(position, obstacleSprite["bigDirtBlock"])
+);

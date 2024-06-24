@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+@font-face {
+  font-family: "Shovel";
+  src: url("/fonts/shovel-knight-extended.ttf") format("truetype");
+}
+
 body {
   height: 100svh;
   background: #000;
