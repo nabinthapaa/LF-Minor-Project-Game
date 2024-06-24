@@ -10,6 +10,12 @@ export class Character implements ICharacter {
   position: Position;
   dimension: Dimension;
   velocity: TVelocity;
+  healthBar = {
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+  };
 
   constructor(
     type: CharacterVariant,

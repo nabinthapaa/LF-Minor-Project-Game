@@ -8,10 +8,6 @@ export default class Bubble {
     x: 0,
     y: 0,
   };
-
-  maxMoveDistance = 60;
-  currentMoveDistance = 0;
-  renderer = new SpriteRender(bubbleSprite["bubble"]);
   dimension = {
     width: bubbleSprite["bubble"].frameWidth,
     height: bubbleSprite["bubble"].frameHeight,
@@ -20,6 +16,10 @@ export default class Bubble {
     x: 1,
     y: 1,
   };
+
+  maxMoveDistance = 60;
+  currentMoveDistance = 0;
+  renderer = new SpriteRender(bubbleSprite["bubble"]);
 
   constructor(public cameraPosition: Position, position: Position) {
     this.position = position;

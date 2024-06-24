@@ -1,7 +1,11 @@
-import { BigDragonSpriteImage, beetoSpriteImage, bubbleSpriteImage } from "../images/preLoad";
+import {
+  BigDragonSpriteImage,
+  beetoSpriteImage,
+  bubbleSpriteImage,
+} from "../images/preLoad";
 import { TSprite } from "../types/Character";
 
-export const beetoSprite: { [key: string]: TSprite } = {
+export const beetoSprite: Record<string, TSprite> = {
   walk: {
     image: beetoSpriteImage.walk,
     frameWidth: 28,
@@ -16,8 +20,7 @@ export const beetoSprite: { [key: string]: TSprite } = {
   },
 };
 
-
-export const bigDragonSprite: { [key: string]: TSprite } = {
+export const bigDragonSprite: Record<string, TSprite> = {
   sleep: {
     image: BigDragonSpriteImage.sleep,
     frameWidth: 183,
@@ -40,16 +43,15 @@ export const bigDragonSprite: { [key: string]: TSprite } = {
     image: BigDragonSpriteImage.attack,
     frameWidth: 180,
     frameHeight: 83,
-    frameCount: 1
+    frameCount: 1,
   },
 };
 
-
-
-export const bubbleSprite: { [key: string]: TSprite } = {
+export const bubbleSprite: Record<string, TSprite> = {
   bubble: {
     image: bubbleSpriteImage.bubble,
     frameWidth: 29,
     frameHeight: 27,
-    frameCount: 2, },
+    frameCount: 2,
+  },
 };

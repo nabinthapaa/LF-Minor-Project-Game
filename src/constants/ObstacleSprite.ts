@@ -1,7 +1,7 @@
 import { obstacleSpriteImage } from "../images/preLoad";
 import { TSprite } from "../types/Character";
 
-export const obstacleSprite: { [key: string]: TSprite } = {
+export const obstacleSprite: Record<string, TSprite> = {
   smallDirtBlock: {
     image: obstacleSpriteImage.smallBlock,
     frameWidth: 16,

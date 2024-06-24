@@ -30,6 +30,7 @@ export default class BigDragon extends Enemy {
   constructor(public cameraPosition: Position, public position: Position) {
     super(cameraPosition, position);
     this.health = 600;
+    this.maxHealth = 600;
     this.sprite = "sleep";
     this.render = new SpriteRender(bigDragonSprite[this.sprite]);
     this.dimension = {
@@ -87,9 +88,10 @@ export default class BigDragon extends Enemy {
   public update(player: Player, ctx: CanvasRenderingContext2D): void {
     if (this.isAttacking) this.sprite = "attack";
     else this.sprite = "sleep";
-    if(this.isAttacking && this.bubbles.length === 0) this.generateBubbles();
+    if (this.isAttacking && this.bubbles.length === 0) this.generateBubbles();
     this.renderEnemy(player, ctx);
     this.switchSprite();
+    this.drawHealthBar(ctx);
   }
 
   public move(): void {
@@ -125,7 +127,7 @@ export default class BigDragon extends Enemy {
     this.bubbles.forEach((bubble, index) => {
       if (bubble.isCollidingWithObject(player.hitbox)) {
         player.takeDamage(10);
-        player.shouldDamage = false;
+        player.isInvincible = false;
         this.bubbles.splice(index, 1);
         if (index === 0) this.lastRemovedBubble++;
         if (this.isAttacking) this.addBubbles();

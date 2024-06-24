@@ -1,16 +1,12 @@
 import Platform from "../Classes/Platform";
 import { Canvas } from "../constants/Canvas";
 import { EPlatform } from "../enums/Platform";
-import mapData from "./mapData2.json";
 
-// TODO: Move to constants if works
-const collisionLevel1Tiles = new Set([
+const collisionTilesOnTileset = new Set([
   356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370,
   372, 373, 374, 379, 380, 381, 384, 385, 386, 387, 388, 389, 390, 391, 392,
   393, 394, 395, 398, 399, 400, 401, 297,
 ]);
-
-export const Mapdata: number[][] = mapData;
 
 export function getCollisionMap(Mapdata: number[][]) {
   let floorCollisions: number[][] = [];
@@ -22,14 +18,14 @@ export function getCollisionMap(Mapdata: number[][]) {
         case currentTile === 403:
           floorCollisions[y][x] = EPlatform.PASSTHROUGH;
           break;
-        case collisionLevel1Tiles.has(currentTile):
-          floorCollisions[y][x] = EPlatform.COLLIDABLE;
-          break;
         case currentTile === 355:
           floorCollisions[y][x] = EPlatform.CLIMBABLE;
           break;
         case currentTile === 397:
           floorCollisions[y][x] = EPlatform.LETHAL;
+          break;
+        case collisionTilesOnTileset.has(currentTile):
+          floorCollisions[y][x] = EPlatform.COLLIDABLE;
           break;
         default:
           floorCollisions[y][x] = EPlatform.PASSTHROUGH;

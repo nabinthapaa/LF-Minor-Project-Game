@@ -1,7 +1,13 @@
 import { playerSpriteImage } from "../images/preLoad";
-import { TSpriteDimensions } from "../types/Character";
+import { TSprite } from "../types/Character";
 
-export const PlayerSpriteDimensions: TSpriteDimensions = {
+export const PlayerSpriteDimensions: Record<string, TSprite> = {
+  idle: {
+    image: playerSpriteImage.idle,
+    frameWidth: 35,
+    frameHeight: 34,
+    frameCount: 1,
+  },
   dig: {
     image: playerSpriteImage.dig,
     frameWidth: 56,
@@ -18,7 +24,7 @@ export const PlayerSpriteDimensions: TSpriteDimensions = {
     image: playerSpriteImage.shine,
     frameWidth: 35,
     frameHeight: 32,
-    frameCount: 3,
+    frameCount: 4,
   },
   jump: {
     image: playerSpriteImage.jump,

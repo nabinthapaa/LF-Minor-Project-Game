@@ -48,7 +48,11 @@ export class SpriteRender {
     if (reverse) ctx.restore();
   }
 
-  switchSprite(image: TSprite, buffer = 10) {
+  public increaseFrameX() {
+    this.frameX++;
+  }
+
+  public switchSprite(image: TSprite, buffer = 10) {
     this.frameX = 0;
     this.frameY = 0;
     this.frameHeight = image.frameHeight;
@@ -59,7 +63,7 @@ export class SpriteRender {
     this.frameBuffer = buffer;
   }
 
-  animateSprite(player?: Player) {
+  public animateSprite(player?: Player) {
     this.elapsedFrame++;
     if (this.elapsedFrame % this.frameBuffer === 0) this.frameX++;
     if (this.frameX >= this.frameCount) {

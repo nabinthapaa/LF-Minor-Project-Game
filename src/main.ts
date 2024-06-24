@@ -2,18 +2,11 @@ import "./style.css";
 
 import Camera from "./Classes/Camera";
 import GameManager from "./Classes/GameManager";
-import { Obstacle } from "./Classes/Obstacle";
 import { Player } from "./Classes/Player";
-import { Beeto } from "./Classes/enemies/Beeto";
-import BigDragon from "./Classes/enemies/BigDragon";
-import { Enemy } from "./Classes/enemies/Enemy";
-import { Canvas } from "./constants/Canvas";
-import { bigDirtBlockPostionLvl1 as bigDirtBlockPostion } from "./constants/ObstaclePosition";
-import { obstacleSprite } from "./constants/ObstacleSprite";
-import { TILE_HEIGHT, TILE_WIDTH } from "./constants/Sprite";
-import { Mapdata, getCollisionMap, makePlatforms } from "./map/level1";
-import { Position } from "./types/Position";
 import { drawStartScreen } from "./Screens/StartScreen";
+import { Canvas, cameraPosition } from "./constants/Canvas";
+import { bigDragon } from "./constants/EnemyLocation";
+import { TILE_HEIGHT, TILE_WIDTH } from "./constants/Sprite";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const ctx = canvas.getContext("2d")!;
@@ -24,39 +17,12 @@ canvas.width = rows * TILE_WIDTH;
 canvas.height = cols * TILE_HEIGHT;
 canvas.style.border = "1px solid red";
 
-const columnDifference = cols - Mapdata.length;
-for (let i = 0; i < columnDifference; i++) {
-  Mapdata.unshift(new Array(rows).fill(403));
-}
-const floorCollisions = getCollisionMap(Mapdata);
-const platforms = makePlatforms(floorCollisions);
-
-const cameraPosition: Position = {
-  x: 0,
-  y: 0,
-};
-
-const keySet = new Set();
-const player = new Player(platforms, cameraPosition);
+const player = new Player(cameraPosition);
+const camera: Camera = new Camera();
 
 window.onload = () => {
   drawStartScreen(ctx);
 };
-
-// TODO: Refactor this to use a game manager class
-const enemy: Enemy = new Beeto(cameraPosition, { x: 600, y: 25 * 16 - 64 });
-const bigDragon: BigDragon = new BigDragon(cameraPosition, {x: 2990, y: 125});
-const obstacles: Obstacle[] = [];
-
-for (let i = 0; i < bigDirtBlockPostion.length; i++) {
-  let position: Position = {
-    x: bigDirtBlockPostion[i].x,
-    y: bigDirtBlockPostion[i].y + columnDifference * TILE_HEIGHT,
-  };
-  obstacles.push(new Obstacle(position, obstacleSprite["bigDirtBlock"]));
-}
-
-const camera: Camera = new Camera();
 
 function drawStat() {
   ctx.font = "10px Shovel";
@@ -70,11 +36,8 @@ function drawStat() {
 
 const gameManager = new GameManager(
   {
-    platforms,
     player,
-    enemies: [enemy, bigDragon],
     cameraPositionWorld: cameraPosition,
-    obstacles,
   },
   ctx
 );
@@ -89,7 +52,7 @@ function draw(currentTime: number = 0) {
     lastTime = currentTime - (deltaTime % FRAME_DURATION);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     handleKeyInputs();
-    gameManager.update(ctx, Mapdata);
+    gameManager.update(ctx);
     camera.update(player.position);
     drawStat();
   }
@@ -97,13 +60,16 @@ function draw(currentTime: number = 0) {
 }
 
 function handleKeyInputs() {
-  if (gameManager.keySet.has("ArrowRight") || keySet.has("KeyL")) {
+  if (gameManager.keySet.has("ArrowRight") || gameManager.keySet.has("KeyL")) {
     player.moveRight();
     if (camera.shouldPanCameraLeft(ctx, cameraPosition)) {
       cameraPosition.x -= player.velocity.x;
       canvas.parentElement?.setAttribute("style", `--move-left: ${backDx--}px`);
     }
-  } else if (gameManager.keySet.has("ArrowLeft") || keySet.has("KeyH")) {
+  } else if (
+    gameManager.keySet.has("ArrowLeft") ||
+    gameManager.keySet.has("KeyH")
+  ) {
     player.moveLeft();
     if (camera.shouldPanCameraRight(ctx, cameraPosition)) {
       cameraPosition.x -= player.velocity.x;
@@ -156,3 +122,13 @@ document.addEventListener("keydown", (e) => {
     draw();
   }
 });
+
+const changeLevel = document.createElement("button");
+changeLevel.innerText = "Change Level";
+changeLevel.style.position = "absolute";
+changeLevel.style.top = "0";
+changeLevel.style.left = "0";
+changeLevel.onclick = () => {
+  gameManager.currentLevel++;
+};
+document.body.appendChild(changeLevel);

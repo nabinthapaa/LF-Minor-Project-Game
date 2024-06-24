@@ -1,5 +1,6 @@
-export enum EITEM {
-  GOLD,
-  DIAMOND,
-  CONSUMABLE,
+export enum EItem {
+  GOLD = "gold",
+  DIAMOND = "diamond",
+  REDGEM = "redGem",
+  PURPLEGEM = "purpleGem",
 }

@@ -7,17 +7,10 @@ import { Enemy } from "./Enemy";
 
 export class Beeto extends Enemy {
   sprite = "walk";
-  health?: number | undefined;
   velocity: TVelocity = {
     x: 0.5,
     y: 0,
   };
-
-  maxMoveDistance = 40;
-  currentMoveDistance = 0;
-  shouldFlip = false;
-  damageTimeout: ReturnType<typeof setTimeout> | null = null;
-  shouldDamage = true;
 
   dimension: Dimension = {
     width: beetoSprite[this.sprite].frameWidth,
@@ -26,22 +19,17 @@ export class Beeto extends Enemy {
 
   render = new SpriteRender(beetoSprite[this.sprite]);
 
-  constructor(public cameraPosition: Position, public position: Position) {
+  constructor(
+    public cameraPosition: Position,
+    public position: Position,
+    maxMoveDistance: number = 40
+  ) {
     super(cameraPosition, position);
     this.health = 100;
+    this.maxMoveDistance = maxMoveDistance;
   }
 
   public renderEnemy(_: Player, ctx: CanvasRenderingContext2D): void {
-    if (!this.isAlive()) {
-      this.dimension = {
-        width: 0,
-        height: 0,
-      };
-      this.position = {
-        x: 0,
-        y: 0,
-      };
-    }
     this.render.animateSprite();
     this.render.drawFrame(
       ctx,
@@ -50,6 +38,11 @@ export class Beeto extends Enemy {
       this.shouldFlip,
       this.cameraPosition
     );
+  }
+
+  public update(_: Player, ctx: CanvasRenderingContext2D) {
+    this.renderEnemy(_, ctx);
+    this.drawHealthBar(ctx);
   }
 
   public move(): void {
