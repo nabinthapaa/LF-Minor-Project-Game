@@ -32,6 +32,7 @@ This is a simple and minimal clone of game called Shovel Knight.
    killing enemies
 1. Parallax background scrolling
 1. Player can die by falling into the pit
+1. Collecting a redgem will heal player
 
 ## Screenshots
 
