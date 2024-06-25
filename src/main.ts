@@ -5,11 +5,12 @@ import GameManager from "./Classes/GameManager";
 import Player from "./Classes/Player";
 import { drawStartScreen } from "./Screens/StartScreen";
 import { Canvas, cameraPosition } from "./constants/Canvas";
-import { bigDragon } from "./constants/EnemyLocation";
 import { TILE_HEIGHT, TILE_WIDTH } from "./constants/Sprite";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
+const infoCanvas = document.querySelector<HTMLCanvasElement>("#status")!;
 const ctx = canvas.getContext("2d")!;
+const infoCanvasCtx = infoCanvas.getContext("2d")!;
 /**
  * Variables use for change the background image from
  * left to right or vice-versa
@@ -19,7 +20,9 @@ let rows = Canvas.ROWS;
 let cols = Canvas.COLS;
 canvas.width = rows * TILE_WIDTH;
 canvas.height = cols * TILE_HEIGHT;
-canvas.style.border = "1px solid red";
+infoCanvas.width = canvas.width;
+infoCanvas.height = 50;
+infoCanvas.style.display = "none";
 
 const player = new Player(cameraPosition);
 const camera: Camera = new Camera();
@@ -30,13 +33,26 @@ window.onload = () => {
 };
 
 function drawStat() {
-  ctx.font = "10px Shovel";
-  ctx.fillStyle = "white";
-  ctx.fillText(`Health: ${player.health}`, 10, 10);
+  infoCanvasCtx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
+  infoCanvasCtx.fillStyle = "#000";
+  infoCanvasCtx.fillRect(0, 0, infoCanvas.width, infoCanvas.height);
+  infoCanvasCtx.font = "10px Shovel";
+  infoCanvasCtx.fillStyle = "purple";
+  infoCanvasCtx.fillText(`Health`, 20, 15);
+  infoCanvasCtx.font = "15px Shovel";
+  infoCanvasCtx.fillText(`${player.health}`, 20, 35);
 
-  ctx.font = "10px Shovel";
-  ctx.fillStyle = "white";
-  ctx.fillText(`Enemy Health: ${bigDragon.health}`, 10, 25);
+  infoCanvasCtx.font = "10px Shovel";
+  infoCanvasCtx.fillStyle = "gold";
+  infoCanvasCtx.fillText(`Gold`, 150, 15);
+  infoCanvasCtx.font = "15px Shovel";
+  infoCanvasCtx.fillText(`${player.gold}`, 150, 35);
+
+  infoCanvasCtx.font = "10px Shovel";
+  infoCanvasCtx.fillStyle = "red";
+  infoCanvasCtx.fillText(`Current Level`, 250, 15);
+  infoCanvasCtx.font = "15px Shovel";
+  infoCanvasCtx.fillText(`${gameManager.currentLevel}`, 250, 35);
 }
 
 const gameManager = new GameManager(
@@ -82,15 +98,13 @@ function draw(currentTime: number = 0) {
     ctx.fillText(
       "You Have Cleared the game ",
       canvas.width / 3,
-      canvas.height / 3,
+      canvas.height / 3
     );
-
     ctx.fillText(
       "Press R to restart",
       canvas.width / 3,
-      canvas.height / 3 + 25,
-
-    )
+      canvas.height / 3 + 25
+    );
   }
   if (!gameState.isGameStart) {
     drawStartScreen(ctx);
@@ -148,6 +162,7 @@ document.addEventListener("keyup", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.code === "Enter") {
     gameState.isGameStart = true;
+    infoCanvas.style.display = "block";
     if (gameState.isGameStart) {
       gameState.isPlaying = true;
     }

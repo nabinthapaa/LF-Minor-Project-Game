@@ -52,9 +52,10 @@ export default class Player extends Character {
   isInvincible = true;
   damageTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  health = 100000;
+  health = 400;
   gold = 0;
   render = new SpriteRender(PlayerSpriteDimensions[this.sprite]);
+  maxHealth: number = 400;
 
   constructor(public cameraPosition: Position) {
     super(CharacterVariant.PLAYER, 400, [
@@ -80,7 +81,7 @@ export default class Player extends Character {
     };
     this.cameraPosition.x = 0;
     this.cameraPosition.y = 0;
-    this.health = 10000;
+    this.health = 400;
     this.isGrounded = false;
     this.isSpirteReset = false;
     this.isGrounded = false;
@@ -274,7 +275,12 @@ export default class Player extends Character {
         this.gold += 120;
         break;
       case EItem.REDGEM:
-        this.gold += 150;
+        if (this.health < this.maxHealth) {
+          this.health += 50;
+          if (this.health > this.maxHealth) {
+            this.health = this.maxHealth;
+          }
+        }
         break;
       case EItem.PURPLEGEM:
         this.gold += 200;

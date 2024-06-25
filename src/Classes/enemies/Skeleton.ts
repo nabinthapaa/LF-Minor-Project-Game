@@ -1,4 +1,4 @@
-import { beetoSprite, skeletonSprite } from "../../constants/EnemySprite";
+import { skeletonSprite } from "../../constants/EnemySprite";
 import { TVelocity } from "../../types/Character";
 import { Dimension, Position } from "../../types/Position";
 import Player from "../Player";
