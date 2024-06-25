@@ -1,4 +1,5 @@
 import { levelInfo } from "../LevelsData/Levels";
+import { MAP } from "../constants/Canvas";
 import { obstacleSprite } from "../constants/ObstacleSprite";
 import { TILESET_COLUMNS, TILE_HEIGHT, TILE_WIDTH } from "../constants/Sprite";
 import { EItem } from "../enums/Items";
@@ -11,14 +12,16 @@ import {
   resolveHorizontalCollision,
   resolveVerticalCollision,
 } from "../utils/Collision";
-import DirtPile from "./DirtPile";
-import Item from "./Item";
-import { Obstacle } from "./Obstacle";
-import Platform from "./Platform";
-import { Player } from "./Player";
-import { Beeto } from "./enemies/Beeto";
+import Player from "./Player";
+import Beeto from "./enemies/Beeto";
 import BigDragon from "./enemies/BigDragon";
+import Boss from "./enemies/Boss";
 import { Enemy } from "./enemies/Enemy";
+import Skeleton from "./enemies/Skeleton";
+import DirtPile from "./objects/DirtPile";
+import Item from "./objects/Item";
+import { Obstacle } from "./objects/Obstacle";
+import Platform from "./objects/Platform";
 
 const items: EItem[] = [
   EItem.GOLD,
@@ -42,11 +45,11 @@ export default class GameManager {
   level = 1;
   maxLevel = 2;
   MapData: number[][] = levelInfo[`${this.level}`].map;
-  platforms: Platform[] = [...levelInfo[`${this.level}`].platforms];
-  obstacles: Obstacle[] = [...levelInfo[`${this.level}`].obstacles];
-  enemies: Enemy[] = [...levelInfo[`${this.level}`].enemies];
+  platforms: Platform[] = levelInfo[`${this.level}`].platforms;
+  obstacles: Obstacle[] = Object.create(levelInfo[`${this.level}`].obstacles);
+  enemies: Enemy[] = Object.create(levelInfo[`${this.level}`].enemies);
   items: Item[] = [];
-  dirtPiles: DirtPile[] = [...levelInfo[`${this.level}`].dirtPiles];
+  dirtPiles: DirtPile[] = Object.create(levelInfo[`${this.level}`].dirtPiles);
 
   constructor(
     { player, cameraPositionWorld }: GameManagerConstructor,
@@ -56,8 +59,25 @@ export default class GameManager {
     this.cameraPosition = cameraPositionWorld;
   }
 
+  public init() {
+    this.level = 1;
+    this.currentLevel = 1;
+    this.MapData = levelInfo[`${this.level}`].map;
+    this.platforms = levelInfo[`${this.level}`].platforms;
+    this.obstacles = levelInfo[`${this.level}`].obstacles.map(
+      (obstacle) => obstacle
+    );
+    this.enemies = levelInfo[`${this.level}`].enemies.map((enemy) => enemy);
+    this.items = [];
+    this.player.init();
+    this.player.health = 400;
+    this.cameraPosition.x = 0;
+    this.cameraPosition.y = 0;
+  }
+
   public update(ctx: CanvasRenderingContext2D): void {
     //Check Current level
+    this.updateLevel();
     if (this.currentLevel !== this.level) {
       this.handleLevelChange();
     }
@@ -71,9 +91,9 @@ export default class GameManager {
       if (enemy instanceof Beeto) enemy.move();
     });
     this.checkPlayerEnemyCollision();
-    // Draw Phase
     this.checkItemCollisions();
     this.checkDirtPileHit();
+    // Draw Phase
     this.drawMap(ctx, this.MapData);
     this.player.drawPlayer(ctx);
     this.drawItems(ctx);
@@ -82,6 +102,12 @@ export default class GameManager {
       enemy.update(this.player, ctx);
     });
     this.drawObstacles(ctx);
+  }
+
+  private updateLevel() {
+    if (this.player.position.x > MAP.MAP_COLS * TILE_WIDTH - 100) {
+      this.currentLevel++;
+    }
   }
 
   public drawMap(ctx: CanvasRenderingContext2D, MapData: number[][]): void {
@@ -108,8 +134,8 @@ export default class GameManager {
     }
   }
 
-  public dropItem(x: number, y: number): void {
-    for (let i = 0; i < 3; i++) {
+  public dropItem(x: number, y: number, count: number = 3): void {
+    for (let i = 0; i < count; i++) {
       let randomItem = items[Math.floor(Math.random() * items.length)];
       console.log(randomItem + " dropped");
       let x_pos = x + (Math.random() > 0.5 ? 10 : -10);
@@ -169,7 +195,7 @@ export default class GameManager {
   }
 
   public checkObstacleCollisions(): void {
-    for (let i = 0; i < this.obstacles?.length; i++) {
+    for (let i = 0; i < this.obstacles.length; i++) {
       let obstacle = this.obstacles[i];
       if (Math.abs(obstacle.position.x - this.player.position.x) > 50) continue;
       if (obstacle.isColliding(this.player.asSolidObject)) {
@@ -180,37 +206,38 @@ export default class GameManager {
           this.player.isJumpAttacking &&
           obstacle.isColliding(this.player.damageBox)
         ) {
-          obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
           resolveVerticalCollision(this.player, obstacle.asSolidObject);
           this.player.rebound();
           this.dropItem(
             obstacle.position.x,
             obstacle.position.y + obstacle.dimension.height - 10
           );
-          this.obstacles?.splice(i, 1);
+          this.obstacles.splice(i, 1);
         }
         if (
           this.player.isAttacking &&
           obstacle.isColliding(this.player.damageBox)
         ) {
-          obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
           this.dropItem(
             obstacle.position.x,
             obstacle.position.y + obstacle.dimension.height - 10
           );
-          this.obstacles?.splice(i, 1);
+          this.obstacles.splice(i, 1);
         }
       }
     }
   }
 
   private handleLevelChange(): void {
-    if (this.currentLevel > this.maxLevel) this.level = this.currentLevel = 1;
+    if (this.currentLevel > this.maxLevel) return;
     this.level = this.currentLevel;
     this.MapData = levelInfo[`${this.level}`].map;
-    this.platforms = [...levelInfo[`${this.level}`].platforms];
-    this.obstacles = [...levelInfo[`${this.level}`].obstacles];
-    this.enemies = [...levelInfo[`${this.level}`].enemies];
+    this.platforms = levelInfo[`${this.level}`].platforms;
+    this.obstacles = levelInfo[`${this.level}`].obstacles.map(
+      (obstacle) => obstacle
+    );
+    this.enemies = levelInfo[`${this.level}`].enemies.map((enemy) => enemy);
+    this.items = [];
     this.player.init();
     this.player.health = 400;
     this.cameraPosition.x = 0;
@@ -232,16 +259,46 @@ export default class GameManager {
         if (enemy.isColliding(this.player.hitbox) && enemy instanceof Beeto) {
           this.handleBeetoAttack(enemy);
         } else if (
-          Math.abs(enemy.position.x - this.player.position.x) < 500 &&
+          Math.abs(enemy.position.x - this.player.position.x) < 1000 &&
           enemy instanceof BigDragon
         ) {
-          this.handleBigDragonAttack(enemy);
+          enemy.move();
+          if (Math.abs(enemy.position.x - this.player.position.x) < 500)
+            this.handleBigDragonAttack(enemy);
+        } else if (enemy instanceof Skeleton) {
+          enemy.move();
+          if (enemy.isColliding(this.player.hitbox)) {
+            Math.abs(enemy.position.x - this.player.position.x) < 1000 &&
+              this.handleSkeletonAttack(enemy);
+          } else {
+            enemy.isAttacking = false;
+          }
+        } else if (enemy instanceof Boss) {
+          if (Math.abs(enemy.position.x - this.player.position.x) < 1000) {
+            enemy.moveBoss(this.player);
+            this.handleBossAttack(enemy, this.player);
+          } else {
+            this.handleBossAttack(enemy, this.player);
+          }
         }
       } else {
-        this.dropItem(
-          enemy.position.x,
-          enemy.position.y + enemy.dimension.height - 10
-        );
+        if (enemy instanceof Beeto)
+          this.dropItem(
+            enemy.position.x,
+            enemy.position.y + enemy.dimension.height - 10
+          );
+        if (enemy instanceof BigDragon)
+          this.dropItem(
+            enemy.position.x,
+            enemy.position.y + enemy.dimension.height - 10,
+            6
+          );
+        if (enemy instanceof Skeleton)
+          this.dropItem(
+            enemy.position.x,
+            enemy.position.y + enemy.dimension.height - 10,
+            4
+          );
         this.enemies.splice(index, 1);
       }
     });
@@ -307,19 +364,8 @@ export default class GameManager {
    * @param enemy The enemy with which the player is close to
    */
   private handleBeetoAttack(enemy: Beeto): void {
-    if (
-      this.player.isAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
-    ) {
-      enemy.takeDamage(50);
-      enemy.shouldDamage = false;
-    } else if (
-      this.player.isJumpAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
-    ) {
-      enemy.takeDamage(100);
-      enemy.shouldDamage = false;
-      this.player.rebound();
+    if (this.handlePlayerAttackOnEnemy(enemy)) {
+      return;
     } else if (enemy.isColliding(this.player.asSolidObject)) {
       this.player.takeDamage(10);
       this.player.isInvincible = false;
@@ -331,24 +377,8 @@ export default class GameManager {
    * @param enemy The enemy with which the player is close to
    */
   private handleBigDragonAttack(enemy: BigDragon): void {
-    if (
-      this.player.isAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.hitbox)
-    ) {
-      enemy.takeDamage(50);
-      enemy.shouldDamage = false;
-    } else if (
-      this.player.isJumpAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.hitbox)
-    ) {
-      enemy.takeDamage(100);
-      this.player.rebound();
-      enemy.shouldDamage = false;
-    } else if (
-      this.player.isJumpAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.noHitbox)
-    ) {
-      this.player.rebound();
+    if (this.handlePlayerAttackOnEnemy(enemy)) {
+      return;
     } else {
       if (this.bigDragonLastAttack === 0) {
         enemy.attackPlayer();
@@ -364,5 +394,71 @@ export default class GameManager {
         enemy.isAttacking = false;
       }
     }
+  }
+
+  private handleSkeletonAttack(enemy: Skeleton): void {
+    if (this.handlePlayerAttackOnEnemy(enemy)) {
+      return;
+    } else if (isCollisionBetween(this.player.hitbox, enemy.asSolidObject)) {
+      if (enemy.lastAttack === 0) {
+        enemy.attackPlayer();
+        enemy.isAttacking = true;
+        enemy.shouldFlip = !this.player.shouldFlip;
+        this.player.takeDamage(100);
+        enemy.lastAttack = Date.now();
+      } else {
+        if (Date.now() - enemy.lastAttack > 2000) {
+          enemy.attackPlayer();
+          this.bigDragonLastAttack = 0;
+        }
+      }
+      if (Date.now() - enemy.lastAttack > 500) {
+        enemy.isAttacking = false;
+      }
+    }
+  }
+
+  private handleBossAttack(enemy: Boss, player: Player): void {
+    if (this.handlePlayerAttackOnEnemy(enemy)) {
+      return;
+    } else if (isCollisionBetween(this.player.hitbox, enemy.asSolidObject)) {
+      if (enemy.lastAttack === 0 || !enemy.isInvincible) {
+        enemy.attackPlayer(player);
+        if (enemy.isAttacking) this.player.takeDamage(100);
+        if (enemy.isJumpAttacking) this.player.takeDamage(200);
+        player.isInvincible = false;
+        enemy.shouldFlip = !this.player.shouldFlip;
+        enemy.lastAttackTime = Date.now();
+      } else {
+        if (Date.now() - enemy.lastAttack > 2000) {
+          enemy.attackPlayer(player);
+          enemy.lastAttackTime = 0;
+        }
+      }
+      if (Date.now() - enemy.lastAttack > 500) {
+        enemy.isAttacking = false;
+        enemy.isJumpAttacking = false;
+      }
+    }
+  }
+
+  private handlePlayerAttackOnEnemy(enemy: Enemy): boolean {
+    if (
+      this.player.isAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(50);
+      enemy.shouldDamage = false;
+      return true;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(100);
+      this.player.rebound();
+      enemy.shouldDamage = false;
+      return true;
+    }
+    return false;
   }
 }

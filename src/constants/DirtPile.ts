@@ -1,4 +1,4 @@
-import DirtPile from "../Classes/DirtPile";
+import DirtPile from "../Classes/objects/DirtPile";
 import { dirtPileImage } from "../images/preLoad";
 import { TSprite } from "../types/Character";
 

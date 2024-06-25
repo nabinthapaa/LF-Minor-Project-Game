@@ -5,7 +5,7 @@ import { TVelocity } from "../../types/Character";
 import { Dimension, Position, SolidObject } from "../../types/Position";
 import { isCollisionBetween } from "../../utils/Collision";
 import { Character } from "../Character";
-import { Player } from "../Player";
+import Player from "../Player";
 import { SpriteRender } from "../SpriteRenderer";
 
 export class Enemy extends Character {
@@ -20,10 +20,12 @@ export class Enemy extends Character {
   maxHealthBarWidth = 50;
   maxMoveDistance = 40;
   currentMoveDistance = 0;
-  maxHealth = 100;
+  maxHealth: number;
   shouldFlip = false;
   damageTimeout: ReturnType<typeof setTimeout> | null = null;
   shouldDamage = true;
+  lastAttack = 0;
+  isAttacking = false;
 
   dimension: Dimension = {
     width: beetoSprite[this.sprite].frameWidth,
@@ -37,6 +39,7 @@ export class Enemy extends Character {
       { name: AttackVariant.NORMAL, damage: 100 },
     ]);
     this.health = 100;
+    this.maxHealth = this.health;
     this.healthBarWidth =
       this.dimension.width > this.maxHealthBarWidth
         ? this.maxHealthBarWidth
@@ -77,7 +80,7 @@ export class Enemy extends Character {
   }
 
   public isAlive(): boolean {
-    return  this.health > 0;
+    return this.health > 0;
   }
 
   public drawHealthBar(ctx: CanvasRenderingContext2D): void {

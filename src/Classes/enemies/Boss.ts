@@ -1,43 +1,25 @@
-import { Canvas, MAP } from "../constants/Canvas";
 import {
   GRAVITY,
-  JUMP_FORCE,
   PLAYER_X_SPEED,
   PLAYER_Y_SPEED,
-} from "../constants/Character";
-import { TILE_HEIGHT } from "../constants/Sprite";
-import { PlayerSpriteDimensions } from "../constants/SpriteDimensions";
-import { AttackVariant } from "../enums/Attack";
-import { CharacterVariant } from "../enums/Character";
-import { EItem } from "../enums/Items";
-import { TVelocity } from "../types/Character";
-import { Dimension, Position, SolidObject } from "../types/Position";
-import { Character } from "./Character";
-import { SpriteRender } from "./SpriteRenderer";
+} from "../../constants/Character";
+import { PlayerSpriteDimensions } from "../../constants/SpriteDimensions";
+import { TVelocity } from "../../types/Character";
+import { Dimension, Position, SolidObject } from "../../types/Position";
+import Player from "../Player";
+import { SpriteRender } from "../SpriteRenderer";
+import { Enemy } from "./Enemy";
 
 /**
  * Player class that is used for making a playable
  * character in the game
- * @extends {Character}
+ * @extends {Enemy}
  */
-export default class Player extends Character {
+export default class Boss extends Enemy {
   position: Position = {
     x: 0,
     y: 0,
   };
-  hitbox = {
-    x: this.position.x,
-    y: this.position.y,
-    width: 36,
-    height: 32,
-  };
-  damageBox = {
-    x: this.position.x,
-    y: this.position.y,
-    width: 0,
-    height: 0,
-  };
-
   dimension: Dimension;
   velocity: TVelocity;
   sprite = "idle";
@@ -51,21 +33,29 @@ export default class Player extends Character {
   shouldFlip = false;
   isInvincible = true;
   damageTimeout: ReturnType<typeof setTimeout> | null = null;
+  jumpAttackCount = 0;
+  jumpAttackTime = 0;
+  groundLevel = 0;
+  maxMoveDistance: number = 100;
+  leftBoundary: number = 0;
+  lastAttackTime = Date.now();
 
-  health = 100000;
   gold = 0;
   render = new SpriteRender(PlayerSpriteDimensions[this.sprite]);
+  isHittingBoundary: boolean = false;
 
-  constructor(public cameraPosition: Position) {
-    super(CharacterVariant.PLAYER, 400, [
-      { name: AttackVariant.NORMAL, damage: 100 },
-      { name: AttackVariant.JUMP, damage: 200 },
-    ]);
+  constructor(public cameraPosition: Position, position: Position) {
+    super(cameraPosition, position);
+    this.position = { ...position };
     this.dimension = {
       width: PlayerSpriteDimensions[this.sprite].frameWidth,
       height: PlayerSpriteDimensions[this.sprite].frameHeight,
     };
     this.velocity = { x: PLAYER_X_SPEED, y: PLAYER_Y_SPEED };
+    this.groundLevel = position.y;
+    this.leftBoundary = position.x;
+    this.health = 400;
+    this.maxHealth = 400;
   }
 
   /**
@@ -80,7 +70,7 @@ export default class Player extends Character {
     };
     this.cameraPosition.x = 0;
     this.cameraPosition.y = 0;
-    this.health = 10000;
+    this.health = 400;
     this.isGrounded = false;
     this.isSpirteReset = false;
     this.isGrounded = false;
@@ -96,11 +86,15 @@ export default class Player extends Character {
    * to the player
    * @returns {void}
    */
-  public updatePlayer(): void {
+  public update(_: Player, ctx: CanvasRenderingContext2D): void {
     this.checkCanvasHorizontalEdgeCollision();
     this.applyGravity();
-    this.addDamageBox();
-    this.updateHitBox();
+    this.drawBoss(ctx);
+    this.drawHealthBar(ctx);
+    if (this.isHittingBoundary) {
+      this.sprite = "idle";
+      this.switchSprite();
+    }
   }
 
   /**
@@ -109,8 +103,8 @@ export default class Player extends Character {
    * @param ctx {CanvasRenderingContext2D} - The canvas context to draw the player
    * @returns {void}
    */
-  public drawPlayer(ctx: CanvasRenderingContext2D): void {
-    this.render.animateSprite(this);
+  public drawBoss(ctx: CanvasRenderingContext2D): void {
+    this.render.animateSprite();
     this.render.drawFrame(
       ctx,
       this.position,
@@ -147,13 +141,12 @@ export default class Player extends Character {
    * @returns {void}
    */
   public moveLeft(): void {
-    this.velocity.x = -PLAYER_X_SPEED;
+    this.velocity.x = -PLAYER_X_SPEED / 2;
     this.position.x += this.velocity.x;
     this.shouldFlip = true;
     if (!this.isGrounded) return;
     this.sprite = "walk";
     this.switchSprite();
-    this.isGrounded = false;
   }
 
   /**
@@ -162,13 +155,12 @@ export default class Player extends Character {
    * @returns {void}
    */
   public moveRight(): void {
-    this.velocity.x = PLAYER_X_SPEED;
+    this.velocity.x = PLAYER_X_SPEED / 2;
     this.position.x += this.velocity.x;
     this.shouldFlip = false;
     if (!this.isGrounded) return;
     this.sprite = "walk";
     this.switchSprite();
-    this.isGrounded = false;
   }
 
   /**
@@ -177,12 +169,9 @@ export default class Player extends Character {
    * @returns {void}
    */
   public jump(): void {
-    if (!this.isGrounded) return;
     this.isGrounded = false;
-    this.velocity.y = JUMP_FORCE;
+    this.velocity.y = -15;
     this.position.y += this.velocity.y;
-    this.sprite = "jump";
-    this.switchSprite();
   }
 
   /**
@@ -191,13 +180,70 @@ export default class Player extends Character {
    * @returns {void}
    */
   public jumpAttack(): void {
-    if (this.isGrounded || this.isAttacking) return;
-    this.sprite = "jumpAttack";
-    this.isJumpAttacking = true;
-    this.switchSprite();
-    setTimeout(() => {
-      this.resetDamageBox();
-    }, 1000);
+    if (this.isAttacking && this.jumpAttackCount > 3) return;
+    if (this.jumpAttackTime === 0) this.jumpAttackTime = Date.now();
+    if (Date.now() - this.jumpAttackTime > 1000) {
+      this.jumpAttackTime = Date.now();
+      this.jump();
+      this.sprite = "jumpAttack";
+      this.switchSprite();
+      this.isJumpAttacking = true;
+      this.jumpAttackCount++;
+      if (this.jumpAttackCount > 3) this.jumpAttackCount = 0;
+      setTimeout(() => {
+        if (this.shouldFlip) this.position.x += 10;
+        this.isJumpAttacking = false;
+      }, 500);
+    }
+    if (this.jumpAttackCount > 3) {
+      this.jumpAttackCount = 0;
+      this.jumpAttackTime = 0;
+    }
+  }
+
+  public moveBoss(player: Player, distance = 100): void {
+    let enemyPlayerDistance = this.position.x - player.position.x;
+    if (this.position.x < player.position.x) {
+      this.shouldFlip = false;
+    }
+    if (this.position.x > player.position.x) {
+      this.shouldFlip = true;
+    }
+    if (
+      Math.abs(enemyPlayerDistance) > distance &&
+      !this.isJumpAttacking &&
+      !this.isAttacking
+    ) {
+      if (enemyPlayerDistance > 0) {
+        this.moveLeft();
+      } else {
+        this.moveRight();
+      }
+      return;
+    }
+  }
+
+  public attackPlayer(player: Player): void {
+    if (Date.now() - this.lastAttackTime < 1000) return;
+    
+    if (Math.random() > 0.5 && this.jumpAttackCount < 3) {
+      this.jumpAttack();
+      player.takeDamage(200);
+      player.isInvincible = true;
+      this.jumpAttackCount++;
+      this.moveBoss(player, 50);
+      this.isAttacking = false;
+      if (this.jumpAttackCount >= 3) {
+        this.jumpAttackCount = 0;
+      }
+    } else if (this.jumpAttackCount === 3 || !this.isJumpAttacking) {
+      this.moveBoss(player, 10);
+      this.isJumpAttacking = false;
+      this.attackNormal();
+      player.takeDamage(100);
+      this.isAttacking = true;
+      player.isInvincible = true;
+    }
   }
 
   /**
@@ -226,7 +272,6 @@ export default class Player extends Character {
     setTimeout(() => {
       if (this.shouldFlip) this.position.x += 10;
       this.isAttacking = false;
-      this.resetDamageBox();
     }, 500);
   }
 
@@ -238,6 +283,8 @@ export default class Player extends Character {
   public takeDamage(damage: number): void {
     if (this.isInvincible) {
       this.health = this.health > 0 ? this.health - damage : 0;
+      this.isAttacking = false;
+      this.isInvincible = false;
       if (!this.isAlive()) {
         this.init();
       }
@@ -260,31 +307,6 @@ export default class Player extends Character {
   }
 
   /**
-   * Collects the item and increases the gold of the player
-   * based on the item collected
-   * @param item {EItem}
-   * @returns {void}
-   */
-  public collectItem(item: EItem): void {
-    switch (item) {
-      case EItem.GOLD:
-        this.gold += 50;
-        break;
-      case EItem.DIAMOND:
-        this.gold += 120;
-        break;
-      case EItem.REDGEM:
-        this.gold += 150;
-        break;
-      case EItem.PURPLEGEM:
-        this.gold += 200;
-        break;
-      default:
-        break;
-    }
-  }
-
-  /**
    * Returns a solid object version of the player player class for
    * collision detection
    * @returns SolidObject
@@ -294,19 +316,6 @@ export default class Player extends Character {
       x: this.position.x,
       y: this.position.y,
       width: this.dimension.width,
-      height: this.dimension.height,
-    };
-  }
-
-  /**
-   * Updates the hitbox of the player
-   * @returns {void}
-   */
-  private updateHitBox(): void {
-    this.hitbox = {
-      x: this.position.x,
-      y: this.position.y,
-      width: 36,
       height: this.dimension.height,
     };
   }
@@ -332,8 +341,9 @@ export default class Player extends Character {
     if (this.isGrounded) return;
     this.velocity.y += GRAVITY;
     this.position.y += this.velocity.y;
-    if (this.position.y >= Canvas.COLS * TILE_HEIGHT - this.dimension.height) {
-      this.init();
+    if (this.position.y + this.dimension.height >= this.groundLevel) {
+      this.isGrounded = true;
+      this.position.y = this.groundLevel;
     }
   }
 
@@ -343,54 +353,12 @@ export default class Player extends Character {
    * @returns {void}
    */
   private checkCanvasHorizontalEdgeCollision(): void {
-    if (this.position.x <= 0) {
-      this.position.x = 0;
-    } else if (
-      this.position.x + this.dimension.width >=
-      MAP.MAP_COLS * MAP.TILE_WIDTH
-    ) {
-      this.position.x = MAP.MAP_COLS * MAP.TILE_WIDTH - this.dimension.width;
+    if (this.position.x <= this.leftBoundary - this.maxMoveDistance) {
+      this.position.x = this.leftBoundary - this.maxMoveDistance;
+      this.isHittingBoundary = true;
+    } else if (this.position.x > this.leftBoundary) {
+      this.position.x = this.leftBoundary;
+      this.isHittingBoundary = true;
     }
-  }
-
-  /**
-   * Adds a damage box to the player when the player is attacking
-   * Normal Attack: to the left or right of the player
-   * Jump Attack: below the player
-   * @returns {void}
-   */
-  private addDamageBox(): void {
-    if (this.isAttacking) {
-      this.damageBox = {
-        x: this.shouldFlip
-          ? this.position.x - this.hitbox.width / 4
-          : this.position.x + this.hitbox.width,
-        y: this.position.y + this.hitbox.height / 2,
-        width: this.hitbox.width / 4,
-        height: this.hitbox.height / 4,
-      };
-    }
-    if (this.isJumpAttacking) {
-      this.damageBox = {
-        x: this.position.x + this.hitbox.width / 2 - this.hitbox.width / 4,
-        y: this.position.y + this.hitbox.height,
-        width: this.hitbox.width / 4,
-        height: this.hitbox.height / 4,
-      };
-    }
-  }
-
-  /**
-   * Resets the damage box of the player
-   * when the player is not attacking
-   * @returns {void}
-   */
-  private resetDamageBox(): void {
-    this.damageBox = {
-      x: this.position.x,
-      y: this.position.y,
-      width: 0,
-      height: 0,
-    };
   }
 }

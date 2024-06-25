@@ -27,7 +27,11 @@ export default class Camera {
     cameraPosition: Position
   ) {
     const cameraRight = this.position.x + this.dimension.width;
+    // Stops Panning Camera when the camera reaches the end of the canvas
+    // total canvas width
     if (cameraRight >= 187 * TILE_WIDTH) return false;
+    // Pans Camera when the player moves to the left
+    // and camera hits 75% of the visible canvas width
     if (cameraRight >= ctx.canvas.width * 0.75 + Math.abs(cameraPosition.x))
       return true;
   }

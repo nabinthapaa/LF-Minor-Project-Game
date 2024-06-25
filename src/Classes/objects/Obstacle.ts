@@ -1,8 +1,8 @@
-import { TSprite } from "../types/Character";
-import { Dimension, Position, SolidObject } from "../types/Position";
-import { isCollisionBetween } from "../utils/Collision";
-import Camera from "./Camera";
-import { SpriteRender } from "./SpriteRenderer";
+import { TSprite } from "../../types/Character";
+import { Dimension, Position, SolidObject } from "../../types/Position";
+import { isCollisionBetween } from "../../utils/Collision";
+import Camera from "../Camera";
+import { SpriteRender } from "../SpriteRenderer";
 
 export class Obstacle {
   render: SpriteRender;
@@ -23,8 +23,6 @@ export class Obstacle {
   }
 
   public draw(ctx: CanvasRenderingContext2D, camera: Position) {
-    if (this.sprite.frameCount > 1)
-      this.isAnimationRunning = this.render.animateSprite();
     this.render.drawFrame(ctx, this.position, this.dimension, false, camera);
   }
 

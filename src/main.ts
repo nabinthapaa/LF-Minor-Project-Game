@@ -2,7 +2,7 @@ import "./style.css";
 
 import Camera from "./Classes/Camera";
 import GameManager from "./Classes/GameManager";
-import { Player } from "./Classes/Player";
+import Player from "./Classes/Player";
 import { drawStartScreen } from "./Screens/StartScreen";
 import { Canvas, cameraPosition } from "./constants/Canvas";
 import { bigDragon } from "./constants/EnemyLocation";
@@ -10,6 +10,10 @@ import { TILE_HEIGHT, TILE_WIDTH } from "./constants/Sprite";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const ctx = canvas.getContext("2d")!;
+/**
+ * Variables use for change the background image from
+ * left to right or vice-versa
+ */
 let backDx = 1;
 let rows = Canvas.ROWS;
 let cols = Canvas.COLS;
@@ -19,9 +23,10 @@ canvas.style.border = "1px solid red";
 
 const player = new Player(cameraPosition);
 const camera: Camera = new Camera();
+let animationId: number = 0;
 
 window.onload = () => {
-  drawStartScreen(ctx);
+  draw();
 };
 
 function drawStat() {
@@ -42,21 +47,55 @@ const gameManager = new GameManager(
   ctx
 );
 
+const gameState = {
+  isGameStart: false,
+  isPlaying: false,
+  isGameOver: false,
+  isGameWon: false,
+  isGamePaused: false,
+};
+
 let lastTime = 0;
 const FPS = 60;
 const FRAME_DURATION = 1000 / FPS;
 
 function draw(currentTime: number = 0) {
-  let deltaTime = currentTime - lastTime;
-  if (deltaTime >= FRAME_DURATION) {
-    lastTime = currentTime - (deltaTime % FRAME_DURATION);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    handleKeyInputs();
-    gameManager.update(ctx);
-    camera.update(player.position);
-    drawStat();
+  if (gameState.isPlaying && !gameState.isGamePaused) {
+    let deltaTime = currentTime - lastTime;
+    if (deltaTime >= FRAME_DURATION) {
+      lastTime = currentTime - (deltaTime % FRAME_DURATION);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      handleKeyInputs();
+      gameManager.update(ctx);
+      camera.update(player.position);
+      drawStat();
+    }
+    if (gameManager.currentLevel > gameManager.maxLevel) {
+      gameState.isPlaying = false;
+      gameState.isGameWon = true;
+    }
   }
-  requestAnimationFrame(draw);
+  if (gameState.isGameWon) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "16px Shovel";
+    ctx.fillStyle = "white";
+    ctx.fillText(
+      "You Have Cleared the game ",
+      canvas.width / 3,
+      canvas.height / 3,
+    );
+
+    ctx.fillText(
+      "Press R to restart",
+      canvas.width / 3,
+      canvas.height / 3 + 25,
+
+    )
+  }
+  if (!gameState.isGameStart) {
+    drawStartScreen(ctx);
+  }
+  animationId = requestAnimationFrame(draw);
 }
 
 function handleKeyInputs() {
@@ -106,29 +145,40 @@ document.addEventListener("keyup", (e) => {
   gameManager.keySet.delete(e.code);
 });
 
-// TODO: Remove this
-const printPlayerPosition = document.createElement("button");
-printPlayerPosition.innerText = "Print Player Position";
-printPlayerPosition.style.position = "absolute";
-printPlayerPosition.style.top = "0";
-printPlayerPosition.style.right = "0";
-printPlayerPosition.onclick = () => {
-  console.log(player.position);
-};
-document.body.appendChild(printPlayerPosition);
-
 document.addEventListener("keydown", (e) => {
   if (e.code === "Enter") {
-    draw();
+    gameState.isGameStart = true;
+    if (gameState.isGameStart) {
+      gameState.isPlaying = true;
+    }
+  }
+  if (e.code === "KeyP") {
+    if (gameState.isGameOver || gameState.isGameWon || !gameState.isGameStart)
+      return;
+    gameState.isGamePaused = !gameState.isGamePaused;
+    gameState.isPlaying = !gameState.isPlaying;
+    if (animationId) {
+      ctx.font = "20px Shovel";
+      ctx.fillStyle = "red";
+      ctx.fillText(
+        "Game Paused",
+        canvas.width / 2 - 110,
+        canvas.height / 2 + 55
+      );
+      cancelAnimationFrame(animationId);
+      animationId = 0;
+    } else {
+      draw();
+    }
+  }
+  if (e.code === "KeyR") {
+    if (gameState.isGameWon) {
+      gameState.isGameStart = false;
+      gameState.isPlaying = true;
+      gameState.isGameWon = false;
+      gameState.isGameOver = false;
+      gameState.isGamePaused = false;
+      gameManager.init();
+    }
   }
 });
-
-const changeLevel = document.createElement("button");
-changeLevel.innerText = "Change Level";
-changeLevel.style.position = "absolute";
-changeLevel.style.top = "0";
-changeLevel.style.left = "0";
-changeLevel.onclick = () => {
-  gameManager.currentLevel++;
-};
-document.body.appendChild(changeLevel);

@@ -1,6 +1,6 @@
 import { TSprite } from "../types/Character";
 import { Dimension, Position } from "../types/Position";
-import { Player } from "./Player";
+import Player from "./Player";
 
 export class SpriteRender {
   Image: HTMLImageElement;

@@ -11,3 +11,10 @@ export const cameraPosition: Position = {
   x: 0,
   y: 0,
 };
+
+export const MAP = {
+  MAP_ROWS: 25,
+  MAP_COLS: 200,
+  TILE_HEIGHT: 16,
+  TILE_WIDTH: 16,
+};

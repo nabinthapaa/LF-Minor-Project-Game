@@ -2,6 +2,7 @@ import {
   BigDragonSpriteImage,
   beetoSpriteImage,
   bubbleSpriteImage,
+  skeletonSpriteImage,
 } from "../images/preLoad";
 import { TSprite } from "../types/Character";
 
@@ -53,5 +54,26 @@ export const bubbleSprite: Record<string, TSprite> = {
     frameWidth: 29,
     frameHeight: 27,
     frameCount: 2,
+  },
+};
+
+export const skeletonSprite: Record<string, TSprite> = {
+  walk: {
+    image: skeletonSpriteImage.walk,
+    frameWidth: 34,
+    frameHeight: 32,
+    frameCount: 4,
+  },
+  attack: {
+    image: skeletonSpriteImage.attack,
+    frameWidth: 50,
+    frameHeight: 37,
+    frameCount: 2,
+  },
+  idle: {
+    image: skeletonSpriteImage.idle,
+    frameWidth: 34,
+    frameHeight: 31,
+    frameCount: 1,
   },
 };

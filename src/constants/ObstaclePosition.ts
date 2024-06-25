@@ -1,4 +1,4 @@
-import { Obstacle } from "../Classes/Obstacle";
+import { Obstacle } from "../Classes/objects/Obstacle";
 import { Position } from "../types/Position";
 import { obstacleSprite } from "./ObstacleSprite";
 

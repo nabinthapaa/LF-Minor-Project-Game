@@ -1,11 +1,16 @@
-import DirtPile from "../Classes/DirtPile";
-import { Obstacle } from "../Classes/Obstacle";
-import Platform from "../Classes/Platform";
 import { Enemy } from "../Classes/enemies/Enemy";
+import DirtPile from "../Classes/objects/DirtPile";
+import { Obstacle } from "../Classes/objects/Obstacle";
+import Platform from "../Classes/objects/Platform";
 import Level1Map from "../MapData/mapData.json";
 import Level2Map from "../MapData/mapData2.json";
 import { dirtPileLocationLVl1 } from "../constants/DirtPile";
-import { beetoLvl1, bigDragon } from "../constants/EnemyLocation";
+import {
+  beetoLvl1,
+  bigDragon,
+  bossLvl1,
+  skeletonLvl1,
+} from "../constants/EnemyLocation";
 import {
   bigDirtBlockLvl1,
   bigDirtBlockLvl2,
@@ -22,7 +27,7 @@ interface ILevelData {
 
 export const level1: ILevelData = {
   map: Level1Map,
-  enemies: [...beetoLvl1],
+  enemies: [...beetoLvl1, ...skeletonLvl1, bossLvl1],
   obstacles: bigDirtBlockLvl1,
   platforms: makePlatforms(getCollisionMap(Level1Map)),
   dirtPiles: [...dirtPileLocationLVl1],
