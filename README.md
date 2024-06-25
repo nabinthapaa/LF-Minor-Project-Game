@@ -32,3 +32,9 @@ This is a simple and minimal clone of game called Shovel Knight.
    killing enemies
 1. Parallax background scrolling
 1. Player can die by falling into the pit
+
+## Screenshots
+
+![image](https://github.com/nabinthapaa/LF-Minor-Project-Game/assets/84976933/a7d69d5f-181f-49de-8db3-cb691db51907)
+![image](https://github.com/nabinthapaa/LF-Minor-Project-Game/assets/84976933/f77a56ce-a120-4970-b2d2-381006de2f4e)
+![image](https://github.com/nabinthapaa/LF-Minor-Project-Game/assets/84976933/d02b6183-d83a-422c-bd4b-832875d351b0)
