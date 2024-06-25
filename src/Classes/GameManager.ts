@@ -1,5 +1,6 @@
 import { levelInfo } from "../LevelsData/Levels";
-import { obstacleSprite } from "../constants/ObstacleSprite";
+import { MAP } from "../constants/Canvas";
+import { MAX_LEVEL } from "../constants/Game";
 import { TILESET_COLUMNS, TILE_HEIGHT, TILE_WIDTH } from "../constants/Sprite";
 import { EItem } from "../enums/Items";
 import { EPlatform } from "../enums/Platform";
@@ -11,14 +12,15 @@ import {
   resolveHorizontalCollision,
   resolveVerticalCollision,
 } from "../utils/Collision";
-import DirtPile from "./DirtPile";
-import Item from "./Item";
-import { Obstacle } from "./Obstacle";
-import Platform from "./Platform";
-import { Player } from "./Player";
-import { Beeto } from "./enemies/Beeto";
+import Player from "./Player";
+import Beeto from "./enemies/Beeto";
 import BigDragon from "./enemies/BigDragon";
 import { Enemy } from "./enemies/Enemy";
+import Skeleton from "./enemies/Skeleton";
+import DirtPile from "./objects/DirtPile";
+import Item from "./objects/Item";
+import { Obstacle } from "./objects/Obstacle";
+import Platform from "./objects/Platform";
 
 const items: EItem[] = [
   EItem.GOLD,
@@ -40,13 +42,13 @@ export default class GameManager {
   bigDragonLastAttack = 0;
   currentLevel = 1;
   level = 1;
-  maxLevel = 2;
+  maxLevel = MAX_LEVEL;
   MapData: number[][] = levelInfo[`${this.level}`].map;
-  platforms: Platform[] = [...levelInfo[`${this.level}`].platforms];
-  obstacles: Obstacle[] = [...levelInfo[`${this.level}`].obstacles];
-  enemies: Enemy[] = [...levelInfo[`${this.level}`].enemies];
+  platforms: Platform[] = levelInfo[`${this.level}`].platforms;
+  obstacles: Obstacle[] = Object.create(levelInfo[`${this.level}`].obstacles);
+  enemies: Enemy[] = Object.create(levelInfo[`${this.level}`].enemies);
   items: Item[] = [];
-  dirtPiles: DirtPile[] = [...levelInfo[`${this.level}`].dirtPiles];
+  dirtPiles: DirtPile[] = Object.create(levelInfo[`${this.level}`].dirtPiles);
 
   constructor(
     { player, cameraPositionWorld }: GameManagerConstructor,
@@ -56,8 +58,39 @@ export default class GameManager {
     this.cameraPosition = cameraPositionWorld;
   }
 
+  /**
+   * Initializes the game state
+   * Sets the level to 1
+   * Resets Player, Camera Position, MapData, Platforms, Obstacles, Enemies, DirtPiles, Items
+   * @returns {void}
+   */
+  public init() {
+    this.level = 1;
+    this.currentLevel = 1;
+    this.MapData = levelInfo[`${this.level}`].map;
+    this.platforms = levelInfo[`${this.level}`].platforms;
+    this.obstacles = levelInfo[`${this.level}`].obstacles.map(
+      (obstacle) => obstacle
+    );
+    this.enemies = levelInfo[`${this.level}`].enemies.map((enemy) => enemy);
+    this.dirtPiles = levelInfo[`${this.level}`].dirtPiles.map((pile) => pile);
+    this.items = [];
+    this.player.init();
+    this.player.health = 400;
+    this.cameraPosition.x = 0;
+    this.cameraPosition.y = 0;
+  }
+
+  /**
+   * Updates the game state
+   * Checks player and other objects, enemies, items, platforms collision
+   * and updates the game state accordingly
+   * @param ctx {CanvasRenderingContext2D} The canvas context to draw the game
+   * @returns {void}
+   */
   public update(ctx: CanvasRenderingContext2D): void {
     //Check Current level
+    this.updateLevel();
     if (this.currentLevel !== this.level) {
       this.handleLevelChange();
     }
@@ -71,9 +104,9 @@ export default class GameManager {
       if (enemy instanceof Beeto) enemy.move();
     });
     this.checkPlayerEnemyCollision();
-    // Draw Phase
     this.checkItemCollisions();
     this.checkDirtPileHit();
+    // Draw Phase
     this.drawMap(ctx, this.MapData);
     this.player.drawPlayer(ctx);
     this.drawItems(ctx);
@@ -84,6 +117,23 @@ export default class GameManager {
     this.drawObstacles(ctx);
   }
 
+  /**
+   * Changes current level to the next level when player reaches
+   * at certain position on the Map
+   * @returns {void}
+   */
+  private updateLevel() {
+    if (this.player.position.x > MAP.MAP_COLS * TILE_WIDTH - 100) {
+      this.currentLevel++;
+    }
+  }
+
+  /**
+   * Draws the map on the screen based on the 2D Matrix passed to it
+   * @param ctx   {CanvasRenderingContext2D} The canvas context to draw the map
+   * @param MapData  {number[][]} The map data to draw the map on the screen
+   * @returns  {void}
+   */
   public drawMap(ctx: CanvasRenderingContext2D, MapData: number[][]): void {
     if (!MapData) return;
     for (let y = 0; y < MapData.length; y++) {
@@ -108,21 +158,36 @@ export default class GameManager {
     }
   }
 
-  public dropItem(x: number, y: number): void {
-    for (let i = 0; i < 3; i++) {
+  /**
+   *  Drops the gems on the screen
+   * @param x {number} The x position where the gems is dropped
+   * @param y {number} The y position where the gems is dropped
+   * @param count   {number} The number of gems to be dropped
+   * @returns {void}
+   */
+  public dropItem(x: number, y: number, count: number = 3): void {
+    for (let i = 0; i < count; i++) {
       let randomItem = items[Math.floor(Math.random() * items.length)];
-      console.log(randomItem + " dropped");
       let x_pos = x + (Math.random() > 0.5 ? 10 : -10);
       this.items.push(new Item(x_pos, y, randomItem));
     }
   }
 
+  /**
+   *  Renders the items on the screen
+   * @param ctx - Canvas context to render the items
+   */
   public drawItems(ctx: CanvasRenderingContext2D): void {
     this.items.forEach((item) => {
       item.update(ctx);
     });
   }
 
+  /**
+   * Checks for collision between player and nearby items
+   * If the player is colliding with the item, the player collects the item
+   * @returns {void}
+   */
   public checkItemCollisions(): void {
     for (let i = 0; i < this.items.length; i++) {
       let item = this.items[i];
@@ -135,12 +200,23 @@ export default class GameManager {
     }
   }
 
+  /**
+   *  Renders the dirt piles on the screen
+   * @param ctx - Canvas context to render the dirt piles
+   * @returns {void}
+   */
   public drawDirtPile(ctx: CanvasRenderingContext2D): void {
     this.dirtPiles.forEach((dirtPile) => {
       dirtPile.update(ctx);
     });
   }
 
+  /**
+   * Checks for collision between player and nearby dirt piles
+   * If player is attacking, the dirt pile is destroyed gradually
+   * When destroyed some gems are dropped
+   * @returns {void}
+   */
   public checkDirtPileHit(): void {
     for (let i = 0; i < this.dirtPiles.length; i++) {
       let dirtPile = this.dirtPiles[i];
@@ -156,20 +232,37 @@ export default class GameManager {
     }
   }
 
+  /**
+   *  Renders the platforms on the screen
+   * @param ctx - Canvas context to render the platforms
+   * @returns {void}
+   */
   public drawPlatforms(ctx: CanvasRenderingContext2D): void {
     this.platforms.forEach((platform) => {
       platform.draw(ctx);
     });
   }
 
+  /**
+   * Renders the obstacles on the screen
+   * @param ctx - Canvas context to render the obstacles
+   * @returns {void}
+   */
   public drawObstacles(ctx: CanvasRenderingContext2D): void {
     this.obstacles?.forEach((obstacle) => {
       obstacle.draw(ctx, this.cameraPosition);
     });
   }
 
+  /**
+   * Checks for collision between player and nearby obstacles
+   * If player is not attacking, the player is stopped from moving
+   * If player is attacking, the obstacle is destroyed
+   * When destroyed some gems are dropped
+   * @returns {void}
+   */
   public checkObstacleCollisions(): void {
-    for (let i = 0; i < this.obstacles?.length; i++) {
+    for (let i = 0; i < this.obstacles.length; i++) {
       let obstacle = this.obstacles[i];
       if (Math.abs(obstacle.position.x - this.player.position.x) > 50) continue;
       if (obstacle.isColliding(this.player.asSolidObject)) {
@@ -180,37 +273,39 @@ export default class GameManager {
           this.player.isJumpAttacking &&
           obstacle.isColliding(this.player.damageBox)
         ) {
-          obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
           resolveVerticalCollision(this.player, obstacle.asSolidObject);
           this.player.rebound();
           this.dropItem(
             obstacle.position.x,
             obstacle.position.y + obstacle.dimension.height - 10
           );
-          this.obstacles?.splice(i, 1);
+          this.obstacles.splice(i, 1);
         }
         if (
           this.player.isAttacking &&
           obstacle.isColliding(this.player.damageBox)
         ) {
-          obstacle.switchSprite(obstacleSprite["bigDirtBlockBroken"]);
           this.dropItem(
             obstacle.position.x,
             obstacle.position.y + obstacle.dimension.height - 10
           );
-          this.obstacles?.splice(i, 1);
+          this.obstacles.splice(i, 1);
         }
       }
     }
   }
 
   private handleLevelChange(): void {
-    if (this.currentLevel > this.maxLevel) this.level = this.currentLevel = 1;
+    if (this.currentLevel > this.maxLevel) return;
     this.level = this.currentLevel;
     this.MapData = levelInfo[`${this.level}`].map;
-    this.platforms = [...levelInfo[`${this.level}`].platforms];
-    this.obstacles = [...levelInfo[`${this.level}`].obstacles];
-    this.enemies = [...levelInfo[`${this.level}`].enemies];
+    this.platforms = levelInfo[`${this.level}`].platforms;
+    this.obstacles = levelInfo[`${this.level}`].obstacles.map(
+      (obstacle) => obstacle
+    );
+    this.enemies = levelInfo[`${this.level}`].enemies.map((enemy) => enemy);
+    this.dirtPiles = levelInfo[`${this.level}`].dirtPiles.map((pile) => pile);
+    this.items = [];
     this.player.init();
     this.player.health = 400;
     this.cameraPosition.x = 0;
@@ -226,22 +321,50 @@ export default class GameManager {
     });
   };
 
+  /**
+   * Checks for collision between player and nearby enemies
+   * When enemy dies they drop some gems
+   * @returns {void}
+   */
   public checkPlayerEnemyCollision(): void {
     this.getNearbyEnemies().forEach((enemy, index) => {
       if (enemy.isAlive()) {
         if (enemy.isColliding(this.player.hitbox) && enemy instanceof Beeto) {
           this.handleBeetoAttack(enemy);
         } else if (
-          Math.abs(enemy.position.x - this.player.position.x) < 500 &&
+          Math.abs(enemy.position.x - this.player.position.x) < 1000 &&
           enemy instanceof BigDragon
         ) {
-          this.handleBigDragonAttack(enemy);
+          enemy.move();
+          if (Math.abs(enemy.position.x - this.player.position.x) < 500)
+            this.handleBigDragonAttack(enemy);
+        } else if (enemy instanceof Skeleton) {
+          enemy.move();
+          if (enemy.isColliding(this.player.hitbox)) {
+            Math.abs(enemy.position.x - this.player.position.x) < 1000 &&
+              this.handleSkeletonAttack(enemy);
+          } else {
+            enemy.isAttacking = false;
+          }
         }
       } else {
-        this.dropItem(
-          enemy.position.x,
-          enemy.position.y + enemy.dimension.height - 10
-        );
+        if (enemy instanceof Beeto)
+          this.dropItem(
+            enemy.position.x,
+            enemy.position.y + enemy.dimension.height - 10
+          );
+        if (enemy instanceof BigDragon)
+          this.dropItem(
+            enemy.position.x,
+            enemy.position.y + enemy.dimension.height - 10,
+            6
+          );
+        if (enemy instanceof Skeleton)
+          this.dropItem(
+            enemy.position.x,
+            enemy.position.y + enemy.dimension.height - 10,
+            4
+          );
         this.enemies.splice(index, 1);
       }
     });
@@ -307,19 +430,8 @@ export default class GameManager {
    * @param enemy The enemy with which the player is close to
    */
   private handleBeetoAttack(enemy: Beeto): void {
-    if (
-      this.player.isAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
-    ) {
-      enemy.takeDamage(50);
-      enemy.shouldDamage = false;
-    } else if (
-      this.player.isJumpAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
-    ) {
-      enemy.takeDamage(100);
-      enemy.shouldDamage = false;
-      this.player.rebound();
+    if (this.handlePlayerAttackOnEnemy(enemy)) {
+      return;
     } else if (enemy.isColliding(this.player.asSolidObject)) {
       this.player.takeDamage(10);
       this.player.isInvincible = false;
@@ -329,26 +441,11 @@ export default class GameManager {
   /**
    * Handles the attack of the Big Dragon on enemy
    * @param enemy The enemy with which the player is close to
+   * @returns {void}
    */
   private handleBigDragonAttack(enemy: BigDragon): void {
-    if (
-      this.player.isAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.hitbox)
-    ) {
-      enemy.takeDamage(50);
-      enemy.shouldDamage = false;
-    } else if (
-      this.player.isJumpAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.hitbox)
-    ) {
-      enemy.takeDamage(100);
-      this.player.rebound();
-      enemy.shouldDamage = false;
-    } else if (
-      this.player.isJumpAttacking &&
-      isCollisionBetween(this.player.damageBox, enemy.noHitbox)
-    ) {
-      this.player.rebound();
+    if (this.handlePlayerAttackOnEnemy(enemy)) {
+      return;
     } else {
       if (this.bigDragonLastAttack === 0) {
         enemy.attackPlayer();
@@ -364,5 +461,58 @@ export default class GameManager {
         enemy.isAttacking = false;
       }
     }
+  }
+
+  /**
+   * Handles the attack of the Skeleton on Player
+   * @param enemy
+   * @returns {void}
+   */
+  private handleSkeletonAttack(enemy: Skeleton): void {
+    if (this.handlePlayerAttackOnEnemy(enemy)) {
+      return;
+    } else if (isCollisionBetween(this.player.hitbox, enemy.asSolidObject)) {
+      if (enemy.lastAttack === 0) {
+        enemy.attackPlayer();
+        enemy.isAttacking = true;
+        enemy.shouldFlip = !this.player.shouldFlip;
+        this.player.takeDamage(100);
+        enemy.lastAttack = Date.now();
+      } else {
+        if (Date.now() - enemy.lastAttack > 2000) {
+          enemy.attackPlayer();
+          this.bigDragonLastAttack = 0;
+        }
+      }
+      if (Date.now() - enemy.lastAttack > 500) {
+        enemy.isAttacking = false;
+      }
+    }
+  }
+
+  /**
+   * Check if the player is attacking the enemy or not
+   * returns a boolean based on it
+   * @param enemy
+   * @returns {boolean}
+   */
+  private handlePlayerAttackOnEnemy(enemy: Enemy): boolean {
+    if (
+      this.player.isAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(50);
+      enemy.shouldDamage = false;
+      return true;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.asSolidObject)
+    ) {
+      enemy.takeDamage(100);
+      this.player.rebound();
+      enemy.shouldDamage = false;
+      return true;
+    }
+    return false;
   }
 }

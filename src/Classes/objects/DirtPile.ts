@@ -1,7 +1,7 @@
-import { cameraPosition } from "../constants/Canvas";
-import { dirtPileSpirte } from "../constants/DirtPile";
-import { SolidObject } from "../types/Position";
-import { SpriteRender } from "./SpriteRenderer";
+import { cameraPosition } from "../../constants/Canvas";
+import { dirtPileSpirte } from "../../constants/DirtPile";
+import { SolidObject } from "../../types/Position";
+import { SpriteRender } from "../SpriteRenderer";
 
 export default class DirtPile {
   render: SpriteRender = new SpriteRender(dirtPileSpirte);

@@ -1,11 +1,11 @@
 import { beetoSprite } from "../../constants/EnemySprite";
 import { TVelocity } from "../../types/Character";
 import { Dimension, Position } from "../../types/Position";
-import { Player } from "../Player";
+import Player from "../Player";
 import { SpriteRender } from "../SpriteRenderer";
 import { Enemy } from "./Enemy";
 
-export class Beeto extends Enemy {
+export default class Beeto extends Enemy {
   sprite = "walk";
   velocity: TVelocity = {
     x: 0.5,

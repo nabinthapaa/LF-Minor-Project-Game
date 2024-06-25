@@ -1,4 +1,4 @@
-import Platform from "../Classes/Platform";
+import Platform from "../Classes/objects/Platform";
 import { Canvas } from "../constants/Canvas";
 import { EPlatform } from "../enums/Platform";
 

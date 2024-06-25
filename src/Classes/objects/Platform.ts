@@ -1,5 +1,5 @@
-import { EPlatform } from "../enums/Platform";
-import { SolidObject } from "../types/Position";
+import { EPlatform } from "../../enums/Platform";
+import { SolidObject } from "../../types/Position";
 
 export default class Platform implements SolidObject {
   constructor(

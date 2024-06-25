@@ -1,7 +1,7 @@
-import { bubbleSprite } from "../constants/EnemySprite";
-import { Position, SolidObject } from "../types/Position";
-import { isCollisionBetween } from "../utils/Collision";
-import { SpriteRender } from "./SpriteRenderer";
+import { bubbleSprite } from "../../constants/EnemySprite";
+import { Position, SolidObject } from "../../types/Position";
+import { isCollisionBetween } from "../../utils/Collision";
+import { SpriteRender } from "../SpriteRenderer";
 
 export default class Bubble {
   position: Position = {

@@ -1,7 +1,7 @@
 import { bigDragonSprite } from "../../constants/EnemySprite";
 import { Position } from "../../types/Position";
-import Bubble from "../Bubble";
-import { Player } from "../Player";
+import Bubble from "../objects/Bubble";
+import Player from "../Player";
 import { SpriteRender } from "../SpriteRenderer";
 import { Enemy } from "./Enemy";
 
@@ -25,6 +25,7 @@ export default class BigDragon extends Enemy {
   lastRemovedBubble = 0;
   currentSprite: string = "";
   attackTimer: number = 0;
+  thisForwards = true;
 
   bubbles: Bubble[] = [];
   constructor(public cameraPosition: Position, public position: Position) {
@@ -95,15 +96,32 @@ export default class BigDragon extends Enemy {
   }
 
   public move(): void {
-    if (this.sprite === "sleep" && !this.isAttacking) {
+    if (
+      (!(this.sprite === "moveFront") && !this.isAttacking) ||
+      !this.thisForwards
+    ) {
       this.sprite = "moveFront";
-      this.switchSprite();
       if (this.currentMoveDistance === this.maxMoveDistance) {
         this.velocity.x = -this.velocity.x;
         this.currentMoveDistance = 0;
       }
 
       this.position.x += this.velocity.x;
+      this.currentMoveDistance++;
+      this.thisForwards = true;
+    }
+  }
+
+  public moveBack(): void {
+    if ((this.sprite === "sleep" && !this.isAttacking) || this.thisForwards) {
+      this.sprite = "moveBack";
+      this.switchSprite();
+      if (this.currentMoveDistance === this.maxMoveDistance) {
+        this.velocity.x = -this.velocity.x;
+        this.currentMoveDistance = 0;
+      }
+
+      this.position.x -= this.velocity.x;
       this.currentMoveDistance++;
     }
   }
@@ -126,8 +144,7 @@ export default class BigDragon extends Enemy {
     }
     this.bubbles.forEach((bubble, index) => {
       if (bubble.isCollidingWithObject(player.hitbox)) {
-        player.takeDamage(10);
-        player.isInvincible = false;
+        player.takeDamage(80);
         this.bubbles.splice(index, 1);
         if (index === 0) this.lastRemovedBubble++;
         if (this.isAttacking) this.addBubbles();
@@ -162,6 +179,13 @@ export default class BigDragon extends Enemy {
         y: this.hitbox.y - i * 10,
       });
       this.bubbles.push(bubble);
+    }
+  }
+
+  public takeDamage(damage: number): void {
+    super.takeDamage(damage);
+    if (this.health <= 300) {
+      this.moveBack();
     }
   }
 }

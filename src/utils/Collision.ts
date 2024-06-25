@@ -1,4 +1,4 @@
-import { Player } from "../Classes/Player";
+import Player from "../Classes/Player";
 import { SolidObject } from "../types/Position";
 
 /**

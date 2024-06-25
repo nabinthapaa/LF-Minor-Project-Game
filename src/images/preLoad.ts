@@ -49,4 +49,10 @@ export const gemsSpriteImage: Record<string, HTMLImageElement> = {
   gold: getImage("/gem4.png"),
 };
 
+export const skeletonSpriteImage: Record<string, HTMLImageElement> = {
+  walk: getImage("/skeletonWalk.png"),
+  attack: getImage("/skeletonAttack.png"),
+  idle: getImage("/skeletonIdle.png"),
+};
+
 export const dirtPileImage: HTMLImageElement = getImage("/dirtPile.png");
