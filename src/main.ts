@@ -105,6 +105,7 @@ function draw(currentTime: number = 0) {
       canvas.width / 3,
       canvas.height / 3 + 25
     );
+    return;
   }
   if (!gameState.isGameStart) {
     drawStartScreen(ctx);
@@ -194,6 +195,7 @@ document.addEventListener("keydown", (e) => {
       gameState.isGameOver = false;
       gameState.isGamePaused = false;
       gameManager.init();
+      draw();
     }
   }
 });

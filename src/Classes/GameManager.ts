@@ -444,8 +444,19 @@ export default class GameManager {
    * @returns {void}
    */
   private handleBigDragonAttack(enemy: BigDragon): void {
-    if (this.handlePlayerAttackOnEnemy(enemy)) {
-      return;
+    if (
+      this.player.isAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.hitbox)
+    ) {
+      enemy.takeDamage(50);
+      enemy.shouldDamage = false;
+    } else if (
+      this.player.isJumpAttacking &&
+      isCollisionBetween(this.player.damageBox, enemy.hitbox)
+    ) {
+      enemy.takeDamage(100);
+      this.player.rebound();
+      enemy.shouldDamage = false;
     } else {
       if (this.bigDragonLastAttack === 0) {
         enemy.attackPlayer();
